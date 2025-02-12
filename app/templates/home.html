@@ -1,85 +1,131 @@
-<!-- app/templates/home.html -->
-{% extends "base.html" %}
-{% block title %}Home{% endblock %}
-{% block content %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Opina</title>
 
-<!-- Hero Section -->
-<section class="hero" id="hero">
-    <div class="hero-content">
-        <h1>Opina</h1>
-        <p class="hero-subtitle">Feedback de clientes em áudio, direto no WhatsApp, com IA e zero complicação.</p>
-        <p class="main-description">Colete feedback real e imediato via WhatsApp – com análise de IA em poucos segundos.</p>
-        <!-- Botão rola até a seção "planos" -->
-        <a href="#planos" class="btn-primary">Teste Já</a>
+  <!-- Fonte Work Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link 
+    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+
+  <!-- CSS local em /static/styles.css -->
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+  <!-- Navbar Minimalista -->
+  <header class="site-header">
+    <nav class="navbar">
+      <ul class="nav-menu">
+        <li><a href="#produto">Produto</a></li>
+        <li><a href="#depoimentos">Depoimentos</a></li>
+        <li><a href="#planos">Planos</a></li>
+        <li><a href="/dashboard">Dashboard</a></li>
+        <li><a href="#testeja">Teste Já</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Seção Hero -->
+  <section class="hero">
+    <h1 class="hero-title">Opina</h1>
+    <p class="hero-subtitle">Feedback de clientes em áudio, direto no WhatsApp, com IA e zero complicação.</p>
+
+    <p class="hero-description">
+      Colete feedback real e imediato via WhatsApp – com análise de IA em poucos segundos.
+    </p>
+
+    <div class="hero-cta" id="testeja">
+      <a href="#planos" class="btn-black">Teste Já</a>
     </div>
-</section>
+  </section>
 
-<!-- Pricing Section (Planos) -->
-<section class="pricing" id="planos">
-    <div class="container">
-        <div class="pricing-header">
-            <h2>Escolha seu plano</h2>
-        </div>
-        
-        <div class="pricing-grid">
-            <!-- Free Plan -->
-            <div class="pricing-card">
-                <h3 class="plan-name">Free</h3>
-                <div class="plan-price">
-                    R$0<span>/mês</span>
-                </div>
-                <ul class="plan-features">
-                    <li>Transcrição IA (limitada)</li>
-                    <li>Até 50 áudios/mês</li>
-                    <li>Dashboard básico</li>
-                    <li>Marca d'água "Opina"</li>
-                </ul>
-                <!-- Form que POSTA na "/" -->
-                <form action="/" method="post">
-                  <input type="hidden" name="plan_id" value="free">
-                  <button type="submit" class="btn-plan">Começar Grátis</button>
-                </form>
-            </div>
+  <!-- Seção Produto -->
+  <section id="produto" class="info-section">
+    <h2>Produto</h2>
+    <p>
+      Opina é uma plataforma que permite a coleta de feedbacks em áudio diretamente no WhatsApp. 
+      Nossa IA transcreve e analisa sentimentos, entregando insights rápidos em um dashboard amigável.
+    </p>
+  </section>
 
-            <!-- Pro Plan -->
-            <div class="pricing-card featured">
-                <h3 class="plan-name">Pro</h3>
-                <div class="plan-price">
-                    R$249<span>/mês</span>
-                </div>
-                <ul class="plan-features">
-                    <li>Transcrição IA ilimitada</li>
-                    <li>Até 1.000 áudios/mês</li>
-                    <li>Dashboard avançado</li>
-                    <li>Análise de sentimento</li>
-                    <li>Remoção da marca "Opina"</li>
-                </ul>
-                <form action="/" method="post">
-                  <input type="hidden" name="plan_id" value="pro">
-                  <button type="submit" class="btn-plan featured">Assinar Pro</button>
-                </form>
-            </div>
+  <!-- Seção Depoimentos -->
+  <section id="depoimentos" class="info-section">
+    <h2>Depoimentos</h2>
+    <p>
+      "O Opina facilitou muito o processo de entender o que nossos clientes pensam. A equipe adora 
+      mandar áudios e nós obtemos análises automáticas!" — Maria S.
+    </p>
+    <p>
+      "Simples, direto e com insights de IA! Economizamos horas de pesquisa toda semana." — João K.
+    </p>
+  </section>
 
-            <!-- Enterprise Plan -->
-            <div class="pricing-card">
-                <h3 class="plan-name">Enterprise</h3>
-                <div class="plan-price">
-                    R$999<span>/mês</span>
-                </div>
-                <ul class="plan-features">
-                    <li>Tudo do Pro</li>
-                    <li>Áudios ilimitados</li>
-                    <li>Integrações customizadas</li>
-                    <li>Suporte prioritário 24/7</li>
-                    <li>Onboarding personalizado</li>
-                </ul>
-                <form action="/" method="post">
-                  <input type="hidden" name="plan_id" value="enterprise">
-                  <button type="submit" class="btn-plan">Fale Conosco</button>
-                </form>
-            </div>
-        </div>
+  <!-- Seção Planos -->
+  <section id="planos" class="pricing-section">
+    <h2>Escolha seu Plano</h2>
+
+    <div class="pricing-grid">
+
+      <!-- FREE -->
+      <div class="pricing-card">
+        <h3>Free</h3>
+        <p class="price">R$0/mês</p>
+        <ul>
+          <li>Transcrição IA (limitada)</li>
+          <li>Até 50 áudios/mês</li>
+          <li>Dashboard básico</li>
+          <li>Marca d’água “Opina”</li>
+        </ul>
+        <form action="/" method="post">
+          <input type="hidden" name="plan_id" value="free">
+          <button type="submit">Começar Grátis</button>
+        </form>
+      </div>
+
+      <!-- PRO -->
+      <div class="pricing-card">
+        <h3>Pro</h3>
+        <p class="price">R$249/mês</p>
+        <ul>
+          <li>Transcrição IA ilimitada</li>
+          <li>Até 1.000 áudios/mês</li>
+          <li>Dashboard avançado</li>
+          <li>Análise de sentimento</li>
+          <li>Remoção da marca “Opina”</li>
+        </ul>
+        <form action="/" method="post">
+          <input type="hidden" name="plan_id" value="pro">
+          <button type="submit">Assinar Pro</button>
+        </form>
+      </div>
+
+      <!-- ENTERPRISE -->
+      <div class="pricing-card">
+        <h3>Enterprise</h3>
+        <p class="price">R$999/mês</p>
+        <ul>
+          <li>Tudo do Pro</li>
+          <li>Áudios ilimitados</li>
+          <li>Integrações customizadas</li>
+          <li>Suporte prioritário 24/7</li>
+          <li>Onboarding personalizado</li>
+        </ul>
+        <form action="/" method="post">
+          <input type="hidden" name="plan_id" value="enterprise">
+          <button type="submit">Fale Conosco</button>
+        </form>
+      </div>
     </div>
-</section>
+  </section>
 
-{% endblock %}
+  <footer class="site-footer">
+    <p>© 2025 Opina — Todos os direitos reservados.</p>
+  </footer>
+
+</body>
+</html>
