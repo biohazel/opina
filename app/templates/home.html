@@ -1,0 +1,85 @@
+<!-- app/templates/home.html -->
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+
+<!-- Hero Section -->
+<section class="hero" id="hero">
+    <div class="hero-content">
+        <h1>Opina</h1>
+        <p class="hero-subtitle">Feedback de clientes em áudio, direto no WhatsApp, com IA e zero complicação.</p>
+        <p class="main-description">Colete feedback real e imediato via WhatsApp – com análise de IA em poucos segundos.</p>
+        <!-- Botão rola até a seção "planos" -->
+        <a href="#planos" class="btn-primary">Teste Já</a>
+    </div>
+</section>
+
+<!-- Pricing Section (Planos) -->
+<section class="pricing" id="planos">
+    <div class="container">
+        <div class="pricing-header">
+            <h2>Escolha seu plano</h2>
+        </div>
+        
+        <div class="pricing-grid">
+            <!-- Free Plan -->
+            <div class="pricing-card">
+                <h3 class="plan-name">Free</h3>
+                <div class="plan-price">
+                    R$0<span>/mês</span>
+                </div>
+                <ul class="plan-features">
+                    <li>Transcrição IA (limitada)</li>
+                    <li>Até 50 áudios/mês</li>
+                    <li>Dashboard básico</li>
+                    <li>Marca d'água "Opina"</li>
+                </ul>
+                <!-- Form que POSTA na "/" -->
+                <form action="/" method="post">
+                  <input type="hidden" name="plan_id" value="free">
+                  <button type="submit" class="btn-plan">Começar Grátis</button>
+                </form>
+            </div>
+
+            <!-- Pro Plan -->
+            <div class="pricing-card featured">
+                <h3 class="plan-name">Pro</h3>
+                <div class="plan-price">
+                    R$249<span>/mês</span>
+                </div>
+                <ul class="plan-features">
+                    <li>Transcrição IA ilimitada</li>
+                    <li>Até 1.000 áudios/mês</li>
+                    <li>Dashboard avançado</li>
+                    <li>Análise de sentimento</li>
+                    <li>Remoção da marca "Opina"</li>
+                </ul>
+                <form action="/" method="post">
+                  <input type="hidden" name="plan_id" value="pro">
+                  <button type="submit" class="btn-plan featured">Assinar Pro</button>
+                </form>
+            </div>
+
+            <!-- Enterprise Plan -->
+            <div class="pricing-card">
+                <h3 class="plan-name">Enterprise</h3>
+                <div class="plan-price">
+                    R$999<span>/mês</span>
+                </div>
+                <ul class="plan-features">
+                    <li>Tudo do Pro</li>
+                    <li>Áudios ilimitados</li>
+                    <li>Integrações customizadas</li>
+                    <li>Suporte prioritário 24/7</li>
+                    <li>Onboarding personalizado</li>
+                </ul>
+                <form action="/" method="post">
+                  <input type="hidden" name="plan_id" value="enterprise">
+                  <button type="submit" class="btn-plan">Fale Conosco</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

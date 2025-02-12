@@ -1,0 +1,13 @@
+<!-- app/templates/login.html -->
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+{% block content %}
+<div class="container" style="padding: 8rem 0;">
+  <h2>Login</h2>
+  <form method="post" action="/login" style="margin-top: 2rem;">
+    <label>Email: <input type="text" name="email"></label><br><br>
+    <label>Senha: <input type="password" name="password"></label><br><br>
+    <button>Entrar</button>
+  </form>
+</div>
+{% endblock %}

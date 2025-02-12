@@ -1,0 +1,16 @@
+<!-- app/templates/dashboard.html -->
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="container" style="padding: 8rem 0;">
+  <h2>Meu Dashboard</h2>
+  <p>Bem-vindo, {{ user_email }}!</p>
+  <hr>
+  <h3>Feedbacks Recentes</h3>
+  <ul>
+    {% for f in feedbacks %}
+      <li>De {{ f.from_phone }}: {{ f.transcript }} (Sentimento: {{ f.sentiment }})</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

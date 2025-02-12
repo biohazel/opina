@@ -1,0 +1,57 @@
+<!-- app/templates/base.html -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}Opina{% endblock %}</title>
+
+  <!-- Carrega o CSS de /static/styles.css -->
+  <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+
+  <!-- Fonte Work Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link 
+    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+</head>
+<body>
+
+  <!-- Cabeçalho fixo -->
+  <header class="header">
+    <div class="nav-container">
+      <div class="logo">
+        <a href="{{ url_for('home') }}">Opina</a>
+      </div>
+      <ul class="nav-menu">
+        <li><a href="{{ url_for('home') }}">Home</a></li>
+        <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+        <li><a href="{{ url_for('login_form') }}">Login</a></li>
+        <!-- "Planos" rola até #planos na Home -->
+        <li><a href="{{ url_for('home') }}#planos">Planos</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <!-- Conteúdo dinâmico das páginas -->
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Rodapé -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-links">
+        <a href="{{ url_for('home') }}">Home</a>
+        <a href="{{ url_for('dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('login_form') }}">Login</a>
+      </div>
+      <div class="copyright">
+        © 2025 Opina - Todos os direitos reservados.
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
