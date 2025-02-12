@@ -1,15 +1,3 @@
-/* app/static/styles.css */
-
-/* Variáveis de cores e espaçamentos */
-:root {
-  --black: #000000;
-  --white: #ffffff;
-  --gray-50: #fafafa;
-  --gray-100: #f5f5f5;
-  --gray-200: #e5e5e5;
-  --gray-800: #262626;
-}
-
 /* Reset básico */
 * {
   margin: 0;
@@ -17,255 +5,149 @@
   box-sizing: border-box;
 }
 
-/* Estilos base */
+/* Fonte principal */
 body {
   font-family: 'Work Sans', sans-serif;
-  color: var(--black);
-  line-height: 1.5;
-  letter-spacing: -0.06em;
-  background-color: var(--white);
-}
-
-/* Layout containers */
-.container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 2rem;
-}
-
-/* Header e Navegação */
-.header {
-  background: var(--white);
-  padding: 2rem 0;
-  position: fixed;
-  width: 100%;
-  top: 0;
-  z-index: 1000;
-}
-
-.nav-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.logo {
-  font-size: 2rem;
-  font-weight: 600;
-  letter-spacing: -0.07em;
-}
-
-.logo a {
-  color: var(--black);
-  text-decoration: none;
-}
-
-.nav-menu {
-  display: flex;
-  gap: 3rem;
-  list-style: none;
-  align-items: center;
-}
-
-.nav-menu a {
-  text-decoration: none;
-  color: var(--black);
-  font-weight: 500;
-  font-size: 1rem;
-  letter-spacing: -0.05em;
-  transition: opacity 0.3s ease;
-}
-
-.nav-menu a:hover {
-  opacity: 0.7;
-}
-
-/* Botões */
-.btn-primary {
-  background: var(--black);
-  color: var(--white) !important;
-  padding: 0.75rem 1.5rem;
-  border-radius: 2rem;
-  font-weight: 500;
-  transition: opacity 0.3s ease !important;
-  text-decoration: none;
-}
-
-.btn-primary:hover {
-  opacity: 0.9;
-}
-
-/* Hero Section */
-.hero {
-  padding: 12rem 0 8rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  min-height: 100vh;
-  background: var(--white);
-}
-
-.hero-content {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 0 2rem;
-}
-
-.hero h1 {
-  font-size: 4.5rem;
-  font-weight: 600;
-  line-height: 1.1;
-  letter-spacing: -0.07em;
-  margin-bottom: 2rem;
-}
-
-.hero-subtitle {
-  font-size: 1.25rem;
-  color: var(--gray-800);
-  max-width: 800px;
-  margin: 0 auto 3rem;
-  letter-spacing: -0.06em;
+  color: #000;
+  background: #fff;
   line-height: 1.6;
 }
 
-.main-description {
-  font-size: 1.5rem;
-  max-width: 700px;
-  margin: 4rem auto;
-  color: var(--gray-800);
-  letter-spacing: -0.06em;
-  line-height: 1.5;
+/* Container e layout */
+.site-header {
+  padding: 1rem 2rem;
+  border-bottom: 1px solid #eee;
 }
-
-/* Pricing Section */
-.pricing {
-  background: var(--white);
-  padding: 8rem 0;
-}
-
-.pricing-header {
-  text-align: center;
-  margin-bottom: 6rem;
-}
-
-.pricing-header h2 {
-  font-size: 3rem;
-  font-weight: 600;
-  letter-spacing: -0.07em;
-  margin-bottom: 1.5rem;
-}
-
-.pricing-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 2rem;
+.navbar {
   max-width: 1200px;
   margin: 0 auto;
 }
-
-.pricing-card {
-  background: var(--white);
-  border: 1px solid var(--gray-200);
-  border-radius: 1rem;
-  padding: 3rem 2rem;
-  transition: transform 0.3s ease, border-color 0.3s ease;
+.nav-menu {
+  list-style: none;
+  display: flex;
+  gap: 2rem;
+  justify-content: flex-end;
+}
+.nav-menu li a {
+  text-decoration: none;
+  color: #000;
+  font-weight: 500;
 }
 
-.pricing-card:hover {
-  transform: translateY(-4px);
-  border-color: var(--black);
+/* Hero */
+.hero {
+  text-align: center;
+  padding: 5rem 2rem;
+  max-width: 900px;
+  margin: 0 auto;
 }
-
-.pricing-card.featured {
-  border: 2px solid var(--black);
-}
-
-.plan-name {
-  font-size: 1.5rem;
+.hero-title {
+  font-size: 4rem;
   font-weight: 600;
-  letter-spacing: -0.06em;
+  margin-bottom: 1rem;
+}
+.hero-subtitle {
+  font-size: 1.25rem;
+  margin-bottom: 2rem;
+  color: #333;
+}
+.hero-description {
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 2rem;
+  max-width: 700px;
+  line-height: 1.5;
+  margin: 0 auto 2rem;
+}
+.btn-black {
+  display: inline-block;
+  background-color: #000;
+  color: #fff;
+  padding: 0.75rem 1.5rem;
+  border-radius: 2rem;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background-color 0.3s ease;
+}
+.btn-black:hover {
+  background-color: #333;
+}
+
+/* Seções genéricas */
+.info-section {
+  padding: 4rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: center;
+}
+.info-section h2 {
+  font-size: 2rem;
   margin-bottom: 1rem;
 }
 
-.plan-price {
-  font-size: 3rem;
-  font-weight: 600;
-  letter-spacing: -0.07em;
+/* Pricing Section */
+.pricing-section {
+  padding: 4rem 2rem;
+  text-align: center;
+}
+.pricing-section h2 {
+  font-size: 2.5rem;
   margin-bottom: 2rem;
 }
-
-.plan-price span {
-  font-size: 1.25rem;
-  color: var(--gray-800);
-  font-weight: 500;
-}
-
-.plan-features {
-  list-style: none;
-  margin: 2rem 0;
-}
-
-.plan-features li {
-  margin-bottom: 1rem;
-  padding-left: 1.5rem;
-  position: relative;
-  letter-spacing: -0.05em;
-}
-
-.plan-features li::before {
-  content: "•";
-  position: absolute;
-  left: 0;
-  color: var(--black);
-}
-
-.btn-plan {
-  width: 100%;
-  padding: 1rem;
-  border: 1px solid var(--black);
-  border-radius: 2rem;
-  background: transparent;
-  color: var(--black);
-  font-weight: 500;
-  text-align: center;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  display: block;
-  letter-spacing: -0.05em;
-}
-
-.btn-plan:hover {
-  background: var(--black);
-  color: var(--white);
-}
-
-.btn-plan.featured {
-  background: var(--black);
-  color: var(--white);
-}
-
-.btn-plan.featured:hover {
-  opacity: 0.9;
-}
-
-/* Footer */
-.footer {
-  background: var(--white);
-  padding: 4rem 0;
-  border-top: 1px solid var(--gray-200);
-  margin-top: 2rem;
-}
-
-.footer-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 2rem;
+.pricing-grid {
   display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
   justify-content: center;
-  align-items: center;
-  color: var(--gray-800);
+}
+.pricing-card {
+  border: 1px solid #ddd;
+  padding: 2rem;
+  border-radius: 8px;
+  width: 280px;
+  text-align: center;
+}
+.pricing-card h3 {
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+}
+.price {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+.pricing-card ul {
+  list-style: none;
+  text-align: left;
+  margin: 1rem auto;
+  padding: 0;
+  max-width: 200px;
+}
+.pricing-card li {
+  margin-bottom: 0.5rem;
+}
+.pricing-card button {
+  margin-top: 1.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid #000;
+  background: #000;
+  color: #fff;
+  border-radius: 2rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+.pricing-card button:hover {
+  background: #333;
+}
+
+/* Rodapé */
+.site-footer {
+  text-align: center;
+  padding: 2rem;
+  border-top: 1px solid #eee;
+  font-size: 0.875rem;
+  color: #666;
+  margin-top: 2rem;
 }
