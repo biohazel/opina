@@ -2,56 +2,79 @@ import os
 import requests
 import stripe
 
-from fastapi import FastAPI, Request, Form, Depends, HTTPException
+from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from starlette.responses import PlainTextResponse
 
-# ====== INICIALIZAÇÃO FASTAPI E TEMPLATES ======
-app = FastAPI()
-templates = Jinja2Templates(directory="app/templates")
+########################
+#   CONFIGURAÇÃO FASTAPI
+########################
 
-# ====== CHAVES DE CONFIGURAÇÃO ======
-VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "test")
+app = FastAPI()
+
+# Monta /static para servir arquivos do diretório app/static
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+# Variáveis de ambiente
+WHATSAPP_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "test")
 ACCESS_TOKEN = os.getenv("WHATSAPP_ACCESS_TOKEN", "")
 PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID", "")
 
-# Stripe
-STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")  # ex.: "sk_test_..."
-STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")  # gerado no painel
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+DOMAIN_URL = os.getenv("DOMAIN_URL", "http://localhost:8000")
+
 stripe.api_key = STRIPE_SECRET_KEY
 
-# Simulação de sessão do usuário
-fake_users = {"user@example.com": {"password": "1234", "plan": "free"}}
-current_user = None  # Em produção, usar DB e tokens/jwt etc.
+# Sessão e dados fictícios
+fake_users = {
+    "user@example.com": {
+        "password": "1234",
+        "plan": "free"
+    }
+}
+current_user = None  # Em produção, usar DB e tokens de autenticação
 
+########################
+#   FUNÇÃO DE RENDER
+########################
 
-# =====================================================
-#                   ROTAS PRINCIPAIS
-# =====================================================
+def render_page(html_name: str, context: dict = None) -> HTMLResponse:
+    """
+    Lê um arquivo HTML de /app/templates/ e faz substituição de placeholders.
+    Placeholder no HTML: {{CHAVE}}
+    """
+    file_path = os.path.join("app", "templates", html_name)
+    with open(file_path, "r", encoding="utf-8") as f:
+        html = f.read()
+    if context:
+        for key, val in context.items():
+            # Substitui {{CHAVE}} pelo valor no HTML
+            placeholder = f"{{{{{key}}}}}"  # vira '{{CHAVE}}'
+            html = html.replace(placeholder, val)
+    return HTMLResponse(content=html)
 
-@app.get("/", response_class=HTMLResponse)
-def home(request: Request):
-    """Renderiza a página inicial (hero + planos)."""
-    return templates.TemplateResponse("home.html", {"request": request})
+########################
+#   ROTAS PRINCIPAIS
+########################
 
-@app.post("/", response_class=HTMLResponse)
+@app.get("/")
+def home():
+    # home.html é estático, sem placeholders
+    return render_page("home.html")
+
+@app.post("/")
 def do_subscribe(plan_id: str = Form(...)):
-    """
-    Trata a escolha de plano via POST na mesma rota "/".
-    Se o usuário não estiver logado, redireciona para /login.
-    Se estiver logado, atualiza o plano e redireciona para /dashboard.
-    """
     global current_user
     if not current_user:
         return RedirectResponse("/login", status_code=302)
     fake_users[current_user]["plan"] = plan_id
     return RedirectResponse("/dashboard", status_code=302)
 
-
-@app.get("/login", response_class=HTMLResponse)
-def login_form(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+@app.get("/login")
+def login_form():
+    return render_page("login.html")
 
 @app.post("/login")
 def login(email: str = Form(...), password: str = Form(...)):
@@ -62,35 +85,33 @@ def login(email: str = Form(...), password: str = Form(...)):
         return RedirectResponse("/dashboard", status_code=302)
     return "Credenciais inválidas"
 
-
-@app.get("/dashboard", response_class=HTMLResponse)
-def dashboard(request: Request):
+@app.get("/dashboard")
+def dashboard():
     global current_user
     if not current_user:
         return RedirectResponse("/login", status_code=302)
-    # Exemplo de "feedbacks" fictícios
+
+    # Cria lista HTML
     feedbacks = [
         {"from_phone": "+551199999999", "transcript": "Excelente serviço!", "sentiment": "positivo"},
         {"from_phone": "+551188888888", "transcript": "Não gostei do atraso", "sentiment": "negativo"}
     ]
-    return templates.TemplateResponse(
-        "dashboard.html",
-        {"request": request, "feedbacks": feedbacks, "user_email": current_user}
-    )
+    feedbacks_html = ""
+    for f in feedbacks:
+        feedbacks_html += f"<li>De {f['from_phone']}: {f['transcript']} (Sentimento: {f['sentiment']})</li>"
 
+    context = {
+        "USER_EMAIL": current_user,
+        "FEEDBACKS_LIST": feedbacks_html
+    }
+    return render_page("dashboard.html", context=context)
 
-# =====================================================
-#                STRIPE CHECKOUT E WEBHOOK
-# =====================================================
+########################
+#   STRIPE CHECKOUT
+########################
 
-@app.get("/checkout/{plan}", response_class=HTMLResponse)
+@app.get("/checkout/{plan}")
 def create_checkout_session(plan: str):
-    """
-    Cria uma sessão de checkout no Stripe para o 'plan' especificado.
-    Exemplo: /checkout/pro ou /checkout/enterprise
-    Permite cartão de crédito e Pix.
-    """
-    # Defina valores em centavos (R$249 => 24900)
     if plan == "pro":
         amount_cents = 24900
         product_name = "Plano Pro"
@@ -101,93 +122,60 @@ def create_checkout_session(plan: str):
         amount_cents = 0
         product_name = "Plano Free"
 
-    # Ajuste para o seu domínio real ou para "http://localhost:8000"
-    domain = os.getenv("DOMAIN_URL", "http://localhost:8000")
-
     try:
         session = stripe.checkout.Session.create(
-            payment_method_types=["card", "pix"],  # Aceita cartão e Pix
+            payment_method_types=["card", "pix"],
             line_items=[{
                 "price_data": {
                     "currency": "brl",
-                    "product_data": {
-                        "name": product_name
-                    },
+                    "product_data": {"name": product_name},
                     "unit_amount": amount_cents
                 },
-                "quantity": 1,
+                "quantity": 1
             }],
             mode="payment",
-            success_url=f"{domain}/success?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{domain}/cancel",
+            success_url=f"{DOMAIN_URL}/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{DOMAIN_URL}/cancel",
         )
         return RedirectResponse(session.url)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@app.get("/success")
+def payment_success():
+    return HTMLResponse("Pagamento concluído com sucesso! Volte ao /dashboard.")
 
-@app.get("/success", response_class=HTMLResponse)
-def payment_success(request: Request):
-    """
-    Rota de retorno quando o pagamento for concluído (Stripe success_url).
-    Normalmente você mostraria uma página "obrigado" e atualizaria o plano.
-    """
-    return "Pagamento concluído com sucesso! Você pode voltar ao /dashboard."
-
-
-@app.get("/cancel", response_class=HTMLResponse)
-def payment_cancel(request: Request):
-    """Rota de retorno se o cliente cancelar ou falhar o pagamento."""
-    return "Pagamento cancelado. Tente novamente ou escolha outro plano."
-
+@app.get("/cancel")
+def payment_cancel():
+    return HTMLResponse("Pagamento cancelado ou falhou. Tente novamente.")
 
 @app.post("/stripe-webhook")
 async def stripe_webhook(request: Request):
-    """
-    Webhook que recebe notificações de pagamento do Stripe.
-    Precisamos validar a assinatura e processar o evento.
-    """
+    if not STRIPE_WEBHOOK_SECRET:
+        return {"status": "webhook not secure - set STRIPE_WEBHOOK_SECRET"}
+
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
 
-    if not STRIPE_WEBHOOK_SECRET:
-        # Se não tivermos um webhook secret configurado,
-        # só vamos retornar OK (não seguro em produção).
-        return {"status": "webhook not secure - set STRIPE_WEBHOOK_SECRET"}
-
     try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, STRIPE_WEBHOOK_SECRET
-        )
+        event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
     except ValueError:
-        # Invalid payload
         raise HTTPException(status_code=400, detail="Invalid payload")
     except stripe.error.SignatureVerificationError:
-        # Invalid signature
         raise HTTPException(status_code=400, detail="Invalid signature")
 
-    # Processar o evento
     if event["type"] == "checkout.session.completed":
-        session = event["data"]["object"]
-        payment_status = session.get("payment_status")  # 'paid'
-        # Aqui você pode atualizar seu banco para registrar que o user pagou,
-        # caso você tenha guardado user_id no 'metadata' da Session.
-        print(f"Pagamento Stripe concluído. ID da sessão: {session['id']}. Status: {payment_status}")
-
+        session_obj = event["data"]["object"]
+        print(f"Pagamento Stripe concluído. Sessão: {session_obj['id']}")
     return {"status": "ok"}
 
-
-# =====================================================
-#         WHATSAPP WEBHOOK (META / AUDIO ETC.)
-# =====================================================
+########################
+#   WHATSAPP WEBHOOK
+########################
 
 @app.get("/webhook")
-def verify_whatsapp(
-    hub_mode: str = None, 
-    hub_challenge: str = None,
-    hub_verify_token: str = None
-):
-    if hub_verify_token == VERIFY_TOKEN:
+def verify_whatsapp(hub_mode: str = None, hub_challenge: str = None, hub_verify_token: str = None):
+    if hub_verify_token == WHATSAPP_VERIFY_TOKEN:
         return PlainTextResponse(hub_challenge or "")
     raise HTTPException(status_code=403, detail="Invalid verify token")
 
@@ -211,12 +199,8 @@ async def receive_whatsapp(request: Request):
                     audio_id = msg["audio"]["id"]
                     audio_url = get_media_url(audio_id, ACCESS_TOKEN)
                     audio_file = download_file(audio_url, ACCESS_TOKEN)
-                    # (chamar whisper, LLM, etc.)
                     send_whatsapp_message(from_phone, "Seu áudio foi processado!")
     return {"status": "ok"}
-
-
-# ========== FUNÇÕES AUXILIARES WHATSAPP ==========
 
 def get_media_url(media_id, token):
     url = f"https://graph.facebook.com/v16.0/{media_id}"
