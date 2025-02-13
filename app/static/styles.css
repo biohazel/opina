@@ -102,7 +102,7 @@ body {
   max-width: 1000px;
   margin: 0 auto;
   justify-content: center;
-  align-items: flex-start; /* Alinha os cards pelo topo */
+  align-items: stretch; /* garante mesma altura */
 }
 
 .pricing-card {
@@ -110,12 +110,12 @@ body {
   border-radius: 8px;
   width: 280px;
   padding: 2rem;
-  display: flex;
-  flex-direction: column;
+  display: flex; 
+  flex-direction: column; 
   text-align: center;
 }
 
-/* Topo (plano + preço) na mesma linha horizontal ou baseline */
+/* Topo (plano + preço) na mesma linha horizontal */
 .pricing-card-top {
   display: flex;
   flex-direction: row;
@@ -124,29 +124,35 @@ body {
   gap: 0.5rem;
   margin-bottom: 1rem;
 }
-
 .plan-name {
   font-size: 1.25rem;
   font-weight: 600;
 }
-
 .plan-price {
   font-size: 1.5rem;
   font-weight: 600;
 }
 
-.pricing-card ul {
+/* Container de funcionalidades */
+.pricing-features {
+  flex-grow: 1; /* faz esticar para igualar a altura dos cards */
+}
+
+/* Lista de features */
+.pricing-features ul {
   list-style: none;
   margin: 1rem auto;
   padding: 0;
   max-width: 200px;
   text-align: left;
 }
-.pricing-card li {
+.pricing-features li {
   margin-bottom: 0.5rem;
 }
-.pricing-card .btn-plan {
-  margin-top: 1.5rem;
+
+/* Footer do card (botão) fixado no final */
+.pricing-footer {
+  margin-top: auto; 
 }
 
 /* Onboarding Section */
@@ -167,7 +173,7 @@ body {
   color: #555;
 }
 
-/* Cartão que envolve o form, para harmonizar com os pricing-cards */
+/* Cartão que envolve o form */
 .onboarding-card {
   border: 1px solid #ddd;
   border-radius: 8px;
@@ -204,7 +210,6 @@ body {
   font-size: 1rem;
   transition: border-color 0.2s ease;
 }
-
 .onboarding-form input:focus {
   border-color: #999;
 }
