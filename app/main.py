@@ -52,7 +52,7 @@ Base = declarative_base()
 
 class TempIdCounter(Base):
     __tablename__ = "temp_id_counter"
-    id = Column(Integer, primary_key=True, index=True)   # fixo = 1
+    id = Column(Integer, primary_key=True, index=True)  # fixo = 1
     current_value = Column(Integer, default=0)
 
 class User(Base):
