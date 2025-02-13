@@ -1,9 +1,10 @@
 fastapi==0.95.2
 uvicorn==0.22.0
+python-dotenv==1.0.0
 requests==2.31.0
-stripe==4.2.0
+stripe==4.0.0
 python-multipart==0.0.5
-SQLAlchemy==1.4.46
-psycopg2-binary==2.9.6
 passlib==1.7.4
-bcrypt==4.0.1
+SQLAlchemy==1.4.46
+authlib==1.2.0
+httpx==0.23.1
