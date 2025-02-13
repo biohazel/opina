@@ -13,7 +13,7 @@ body {
   line-height: 1.6;
 }
 
-/* Container e layout */
+/* Header e navegação */
 .site-header {
   padding: 1rem 2rem;
   border-bottom: 1px solid #eee;
@@ -59,10 +59,12 @@ body {
   line-height: 1.5;
   margin: 0 auto 2rem;
 }
+
+/* Botão (preto arredondado) geral */
 .btn-black {
   display: inline-block;
   background-color: #000;
-  color: #fff;
+  color: #fff !important;
   padding: 0.75rem 1.5rem;
   border-radius: 2rem;
   text-decoration: none;
@@ -103,35 +105,25 @@ body {
   justify-content: center;
 }
 
-/* 
-   Aqui está o crucial:
-   - display: flex + flex-direction: column
-   - justify-content: space-between
-   - faz o conteúdo expandir e empurra o botão para base
-*/
 .pricing-card {
   border: 1px solid #ddd;
   border-radius: 8px;
   width: 280px;
   padding: 2rem;
   display: flex;
-  flex-direction: column;  
+  flex-direction: column;
   justify-content: space-between;
   text-align: center;
 }
-
 .pricing-card h3 {
   margin-bottom: 1rem;
   font-size: 1.25rem;
 }
-
 .price {
   font-size: 1.5rem;
   font-weight: 600;
   margin-bottom: 1rem;
 }
-
-/* Lista de features */
 .pricing-card ul {
   list-style: none;
   margin: 1rem auto;
@@ -143,29 +135,34 @@ body {
   margin-bottom: 0.5rem;
 }
 
-/* Form que contém o botão */
-.pricing-card form {
-  margin-top: auto; /* empurra o form para o fim do card */
-  display: flex;
-  justify-content: center; /* centraliza o botão */
-}
-
-/* Botão dentro do pricing card */
-.pricing-card button {
-  padding: 0.5rem 1rem;
-  border: 1px solid #000;
-  background: #000;
-  color: #fff;
+/* Botões dos planos (Free=button, Pro/Enterprise=a.btn-plan) */
+.pricing-card button,
+.pricing-card a.btn-plan {
+  display: inline-block;
+  background-color: #000;
+  color: #fff !important; 
+  padding: 0.75rem 1.5rem;
   border-radius: 2rem;
-  cursor: pointer;
+  text-decoration: none;
   font-weight: 500;
+  text-align: center;
   transition: background-color 0.3s ease;
-}
-.pricing-card button:hover {
-  background: #333;
+  margin-top: 1.5rem;
+  border: 1px solid #000;
+  cursor: pointer;
 }
 
-/* Rodapé */
+/* Evitar link roxo/azul no visited */
+.pricing-card a.btn-plan:visited {
+  color: #fff !important;
+}
+
+.pricing-card button:hover,
+.pricing-card a.btn-plan:hover {
+  background-color: #333;
+}
+
+/* Footer */
 .site-footer {
   text-align: center;
   padding: 2rem;
