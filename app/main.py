@@ -52,6 +52,7 @@ Base = declarative_base()
 
 class User(Base):
     __tablename__ = "users"
+
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
@@ -71,8 +72,6 @@ def get_db():
 # Render Page Helper
 ########################
 
-from fastapi.responses import HTMLResponse
-
 def render_page(html_name: str, context: dict = None) -> HTMLResponse:
     path = os.path.join("app", "templates", html_name)
     with open(path, "r", encoding="utf-8") as f:
@@ -84,22 +83,25 @@ def render_page(html_name: str, context: dict = None) -> HTMLResponse:
     return HTMLResponse(content=html_content)
 
 ########################
-# ROTAS
+# ROTAS PRINCIPAIS
 ########################
 
 @app.get("/")
 def home():
+    # Renderiza "home.html" com os planos. 
     return render_page("home.html")
 
 ########################
-# CHECKOUT: PRO / ENTERPRISE
+# CHECKOUT: PRO/ENTERPRISE
 ########################
 
 @app.get("/checkout/{plan}")
 def create_checkout_session(plan: str):
     """
-    Cria sessão do Stripe sem exigir login.
-    Ao concluir, redireciona /onboarding?plan=pro&session_id=xxx
+    Cria a sessão do Stripe sem login.
+    Usa apenas "card" como método de pagamento.
+    Ao concluir, Stripe redireciona para:
+        /onboarding?plan=pro&session_id=cs_xxx
     """
     if plan == "pro":
         amount_cents = 24900
@@ -112,7 +114,7 @@ def create_checkout_session(plan: str):
 
     try:
         session = stripe.checkout.Session.create(
-            payment_method_types=["card", "pix"],
+            payment_method_types=["card"],  # somente cartão
             line_items=[{
                 "price_data": {
                     "currency": "brl",
@@ -128,9 +130,10 @@ def create_checkout_session(plan: str):
                 "plan": plan
             }
         )
+        # Redireciona imediatamente p/ Stripe
         return RedirectResponse(session.url)
     except Exception as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/cancel")
 def payment_cancel():
@@ -143,8 +146,8 @@ def payment_cancel():
 @app.get("/onboarding")
 def get_onboarding(plan: str = "free", session_id: str = ""):
     """
-    Mostra formulário para criar user. 
-    Ex.: /onboarding?plan=pro&session_id=cs_test_123...
+    Exibe o formulário de Onboarding. 
+    /onboarding.html deve usar {{PLAN}} e {{SESSION_ID}} para exibir/ocultar se quiser.
     """
     context = {
         "PLAN": plan,
@@ -161,15 +164,16 @@ def post_onboarding(
     db=Depends(get_db)
 ):
     """
-    Cria user no DB com 'plan' (que o user pagou).
+    Cria user no DB com 'plan'. 
+    A senha é hasheada com bcrypt, e ao final 
+    redirecionamos ao /dashboard.
     """
-    # Hashea a senha
     hashed_pw = bcrypt.hash(password)
-    # Cria e salva no DB
     new_user = User(email=email, password_hash=hashed_pw, plan=plan)
     db.add(new_user)
     db.commit()
 
+    # poderia logar user ou exibir msg
     return RedirectResponse("/dashboard", status_code=302)
 
 ########################
@@ -178,9 +182,7 @@ def post_onboarding(
 
 @app.get("/dashboard")
 def dashboard():
-    return HTMLResponse(
-        "Bem-vindo ao Dashboard! (Em produção, use login e associar user.)"
-    )
+    return HTMLResponse("Bem-vindo ao Dashboard! (Em produção, implemente login para gerenciar este user.)")
 
 ########################
 # STRIPE WEBHOOK
@@ -189,9 +191,8 @@ def dashboard():
 @app.post("/stripe-webhook")
 async def stripe_webhook(request: Request):
     """
-    Se quiser usar o webhook p/ algo extra. 
-    Aqui não atualizamos user porque criamos user depois do pagamento (onboarding).
-    Mas se você quiser, use metadata e associe.
+    Caso queira usar no futuro para algo adicional (ex.: logs, reconciliação).
+    Não atualizamos 'plan' aqui, porque estamos criando user APÓS pagamento.
     """
     if not STRIPE_WEBHOOK_SECRET:
         return {"status": "webhook not secure"}
@@ -201,26 +202,14 @@ async def stripe_webhook(request: Request):
     try:
         event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
     except (ValueError, stripe.error.SignatureVerificationError):
-        raise HTTPException(400, "Invalid signature")
+        raise HTTPException(status_code=400, detail="Invalid signature")
 
     if event["type"] == "checkout.session.completed":
-        # Se quiser algo extra
         session_obj = event["data"]["object"]
         plan = session_obj["metadata"].get("plan")
         print(f"[StripeWebhook] Payment completed. Plan = {plan}")
+        # Ex.: Log ou mandar e-mail
     return {"status": "ok"}
-
-########################
-# (Opcional) FREE
-########################
-
-@app.get("/onboarding_free")
-def onboarding_free():
-    """
-    Ou você pode mandar /onboarding?plan=free
-    e no form 'plan=free'.
-    """
-    return "Implementar se quiser"
 
 ########################
 #  WHATSAPP WEBHOOK (Opcional)
@@ -234,10 +223,9 @@ def verify_whatsapp(
 ):
     if hub_verify_token == WHATSAPP_VERIFY_TOKEN:
         return PlainTextResponse(hub_challenge or "")
-    raise HTTPException(403, "Invalid verify token")
+    raise HTTPException(status_code=403, detail="Invalid verify token")
 
 @app.post("/webhook")
 async def receive_whatsapp(request: Request):
-    body = await request.json()
-    # ...
+    # Exemplo parcial
     return {"status": "ok"}
