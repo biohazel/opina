@@ -60,7 +60,7 @@ body {
   margin: 0 auto 2rem;
 }
 
-/* Botão estilo preto arredondado */
+/* Botão preto arredondado */
 .btn-black,
 .btn-plan {
   display: inline-block;
@@ -74,7 +74,6 @@ body {
   transition: background-color 0.3s ease;
   border: 1px solid #000;
   cursor: pointer;
-  /* Caso queira remover a borda em alguma instância, pode fazer .btn-plan { border:none; } no HTML inline */
 }
 .btn-black:hover,
 .btn-plan:hover {
@@ -145,8 +144,17 @@ body {
   margin-bottom: 0.5rem;
 }
 
-/* Botões dos planos (dentro de pricing-card) */
-.pricing-card a.btn-plan,
-.pricing-card button.btn-plan {
+/* Ajuste de margem para botões dentro do card */
+.pricing-card .btn-plan {
   margin-top: 1.5rem;
+}
+
+/* Footer */
+.site-footer {
+  text-align: center;
+  padding: 2rem;
+  border-top: 1px solid #eee;
+  font-size: 0.875rem;
+  color: #666;
+  margin-top: 2rem;
 }
