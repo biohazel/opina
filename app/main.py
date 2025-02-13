@@ -20,8 +20,6 @@ from passlib.hash import bcrypt
 ########################
 
 app = FastAPI()
-
-# Monta /static para servir arquivos do diretório app/static
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 ########################

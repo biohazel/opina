@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Onboarding - Opina</title>
+
+  <!-- Fonte Work Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link 
+    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+
+  <!-- CSS local -->
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <!-- Se quiser a mesma navbar, copie a de home.html ou use algo minimal -->
+  <header class="site-header">
+    <nav class="navbar">
+      <ul class="nav-menu">
+        <li><a href="/">Home</a></li>
+        <li><a href="/dashboard">Dashboard</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Seção Hero ou Container -->
+  <section class="hero" style="min-height: 70vh;">
+    <div class="hero-content" style="max-width: 600px; margin: 0 auto; text-align:left;">
+      <h1>Onboarding</h1>
+      <p class="hero-subtitle" style="margin-bottom:2rem;">
+        Precisamos de alguns dados para concluir seu cadastro e emitir notas fiscais.
+      </p>
+
+      <!-- Formulário de Onboarding -->
+      <!-- Ajuste a action="/onboarding" caso use esse endpoint POST no back-end -->
+      <form method="post" action="/onboarding" style="display:flex; flex-direction:column; gap:1rem;">
+        <!-- Nome Completo -->
+        <label>
+          Nome Completo:
+          <input type="text" name="full_name" required placeholder="Seu nome completo">
+        </label>
+
+        <!-- Email -->
+        <label>
+          Email:
+          <input type="email" name="email" required placeholder="voce@exemplo.com">
+        </label>
+
+        <!-- Senha -->
+        <label>
+          Crie uma Senha:
+          <input type="password" name="password" required placeholder="Crie uma senha">
+        </label>
+
+        <!-- CPF ou CNPJ -->
+        <label>
+          CPF ou CNPJ:
+          <input type="text" name="doc_number" required placeholder="000.000.000-00 ou 00.000.000/0000-00">
+        </label>
+
+        <!-- Endereço -->
+        <label>
+          Endereço:
+          <input type="text" name="address" required placeholder="Rua, Número, Bairro, Cidade, UF">
+        </label>
+
+        <!-- Consentimento LGPD -->
+        <div style="margin-top:1rem;">
+          <input type="checkbox" id="accept_terms" name="accept_terms" value="yes" required>
+          <label for="accept_terms">
+            Li e aceito os <a href="#" target="_blank">Termos de Uso</a> e a 
+            <a href="#" target="_blank">Política de Privacidade</a>.
+          </label>
+        </div>
+
+        <!-- Botão Submit -->
+        <button type="submit" class="btn-black" style="width: 100%; margin-top:2rem;">
+          Concluir Onboarding
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <p>© 2025 Opina — Todos os direitos reservados.</p>
+  </footer>
+</body>
+</html>

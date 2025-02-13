@@ -81,8 +81,8 @@
           <li>Dashboard básico</li>
           <li>Marca d’água “Opina”</li>
         </ul>
-        <form action="/" method="post">
-          <input type="hidden" name="plan_id" value="free">
+        <!-- Plano FREE faz POST p/ /subscribe_free -->
+        <form action="/subscribe_free" method="post">
           <button type="submit">Começar Grátis</button>
         </form>
       </div>
@@ -98,10 +98,8 @@
           <li>Análise de sentimento</li>
           <li>Remoção da marca “Opina”</li>
         </ul>
-        <form action="/" method="post">
-          <input type="hidden" name="plan_id" value="pro">
-          <button type="submit">Assinar Pro</button>
-        </form>
+        <!-- Plano PRO faz GET p/ /checkout/pro -->
+        <a href="/checkout/pro" class="btn-plan featured">Assinar Pro</a>
       </div>
 
       <!-- ENTERPRISE -->
@@ -115,10 +113,8 @@
           <li>Suporte prioritário 24/7</li>
           <li>Onboarding personalizado</li>
         </ul>
-        <form action="/" method="post">
-          <input type="hidden" name="plan_id" value="enterprise">
-          <button type="submit">Assinar Enterpriseo</button>
-        </form>
+        <!-- Plano Enterprise faz GET p/ /checkout/enterprise -->
+        <a href="/checkout/enterprise" class="btn-plan">Assinar Enterprise</a>
       </div>
     </div>
   </section>
