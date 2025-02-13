@@ -16,10 +16,6 @@ from datetime import datetime
 # Passlib p/ bcrypt
 from passlib.hash import bcrypt
 
-# Authlib p/ Google OAuth
-from authlib.integrations.starlette_client import OAuth
-from starlette.config import Config
-
 ########################
 # FASTAPI e STATIC
 ########################
@@ -40,9 +36,6 @@ STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 DOMAIN_URL = os.getenv("DOMAIN_URL", "http://localhost:8000")
 
 DATABASE_URL = os.getenv("DATABASE_URL", "")
-
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
 
 stripe.api_key = STRIPE_SECRET_KEY
 
@@ -128,38 +121,6 @@ def render_page(file_name: str, context: dict=None):
     return HTMLResponse(html)
 
 ########################
-# GOOGLE OAUTH
-########################
-
-config = Config(environ={
-    "GOOGLE_CLIENT_ID": GOOGLE_CLIENT_ID,
-    "GOOGLE_CLIENT_SECRET": GOOGLE_CLIENT_SECRET
-})
-oauth = OAuth(config)
-oauth.register(
-    name="google",
-    client_id=GOOGLE_CLIENT_ID,
-    client_secret=GOOGLE_CLIENT_SECRET,
-    server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
-    client_kwargs={"scope": "openid email profile"},
-)
-
-@app.get("/login/google")
-async def login_google(request: Request):
-    redirect_uri = f"{DOMAIN_URL}/auth/google/callback"
-    return await oauth.google.authorize_redirect(request, redirect_uri)
-
-@app.get("/auth/google/callback")
-async def google_callback(request: Request):
-    token = await oauth.google.authorize_access_token(request)
-    userinfo = token.get("userinfo", {})
-    email = userinfo.get("email", "")
-    name = userinfo.get("name", "")
-
-    # redireciona p/ onboarding com plan=free ou algo
-    return RedirectResponse(f"/onboarding?plan=free&google_email={email}&google_name={name}")
-
-########################
 # HOME + CHECKOUT
 ########################
 
@@ -170,11 +131,11 @@ def home():
 @app.get("/checkout/{plan}")
 def checkout(plan: str, db=Depends(get_db)):
     if plan=="pro":
-        amount_cents=24900
-        product_name="Plano Pro"
+        amount_cents = 24900
+        product_name = "Plano Pro"
     elif plan=="enterprise":
-        amount_cents=99900
-        product_name="Plano Enterprise"
+        amount_cents = 99900
+        product_name = "Plano Enterprise"
     else:
         raise HTTPException(400, "Plano inválido")
 
@@ -213,18 +174,14 @@ def payment_cancel():
 
 @app.get("/onboarding")
 def onboarding_get(
-    plan:str="free",
-    temp_id:str="",
-    session_id:str="",
-    google_email:str="",
-    google_name:str=""
+    plan: str = "free",
+    temp_id: str = "",
+    session_id: str = ""
 ):
     context = {
         "PLAN": plan,
         "TEMP_ID": temp_id,
         "SESSION_ID": session_id,
-        "GOOGLE_EMAIL": google_email,
-        "GOOGLE_NAME": google_name
     }
     return render_page("onboarding.html", context)
 
