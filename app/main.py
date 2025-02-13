@@ -2,28 +2,28 @@ import os
 import requests
 import stripe
 
-from fastapi import FastAPI, Request, Form, HTTPException
+from fastapi import FastAPI, Request, Form, HTTPException, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import PlainTextResponse
 
-# ====== SQLAlchemy ======
+# === SQLAlchemy Imports ===
 from sqlalchemy import create_engine, Column, Integer, String, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base
 from datetime import datetime
 
-# ====== Hash de Senhas (bcrypt via passlib) ======
+# === Passlib (bcrypt) ===
 from passlib.hash import bcrypt
 
 ########################
-#   FASTAPI CONFIG
+# FASTAPI + STATIC
 ########################
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 ########################
-#   ENV VARS
+# ENV Vars
 ########################
 
 WHATSAPP_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "")
@@ -40,11 +40,11 @@ DATABASE_URL = os.getenv("DATABASE_URL", "")
 stripe.api_key = STRIPE_SECRET_KEY
 
 ########################
-#   BANCO DE DADOS
+# DB Setup
 ########################
 
 if not DATABASE_URL:
-    raise RuntimeError("DATABASE_URL not set. Configure your Postgres in Render or .env")
+    raise RuntimeError("DATABASE_URL is not set")
 
 engine = create_engine(DATABASE_URL, echo=False)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -52,33 +52,13 @@ Base = declarative_base()
 
 class User(Base):
     __tablename__ = "users"
-
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
-    password_hash = Column(String, nullable=False)  # Senha hashed (bcrypt)
+    password_hash = Column(String, nullable=False)
     plan = Column(String, default="free")
     created_at = Column(DateTime, default=datetime.utcnow)
 
-# Cria tabelas se não existirem
 Base.metadata.create_all(bind=engine)
-
-########################
-# RENDER PAGE HELPER
-########################
-
-def render_page(html_name: str, context: dict = None) -> HTMLResponse:
-    file_path = os.path.join("app", "templates", html_name)
-    with open(file_path, "r", encoding="utf-8") as f:
-        html_content = f.read()
-    if context:
-        for key, val in context.items():
-            placeholder = f"{{{{{key}}}}}"
-            html_content = html_content.replace(placeholder, val)
-    return HTMLResponse(content=html_content)
-
-########################
-# DB SESSION HELPER
-########################
 
 def get_db():
     db = SessionLocal()
@@ -88,114 +68,39 @@ def get_db():
         db.close()
 
 ########################
-#   VAR GERAL DE SESSÃO
+# Render Page Helper
 ########################
 
-current_user_email = None  # Exemplo simples. Em produção, use tokens/cookies
+from fastapi.responses import HTMLResponse
+
+def render_page(html_name: str, context: dict = None) -> HTMLResponse:
+    path = os.path.join("app", "templates", html_name)
+    with open(path, "r", encoding="utf-8") as f:
+        html_content = f.read()
+    if context:
+        for key, val in context.items():
+            placeholder = f"{{{{{key}}}}}"
+            html_content = html_content.replace(placeholder, val)
+    return HTMLResponse(content=html_content)
 
 ########################
-#     ROTAS PRINCIPAIS
+# ROTAS
 ########################
 
 @app.get("/")
 def home():
     return render_page("home.html")
 
-@app.get("/login")
-def login_form():
-    return render_page("login.html")
-
-@app.post("/login")
-def do_login(email: str = Form(...), password: str = Form(...)):
-    """
-    Se user não existir, cria com plan=free. 
-    Se existir, compara a senha (bcrypt).
-    """
-    global current_user_email
-    db = SessionLocal()
-    user = db.query(User).filter(User.email == email).first()
-    if user:
-        # Verifica senha
-        if bcrypt.verify(password, user.password_hash):
-            current_user_email = user.email
-            return RedirectResponse("/dashboard", status_code=302)
-        else:
-            return "Senha incorreta"
-    else:
-        # Cria user (free)
-        hashed_pw = bcrypt.hash(password)
-        new_user = User(email=email, password_hash=hashed_pw, plan="free")
-        db.add(new_user)
-        db.commit()
-        current_user_email = new_user.email
-        return RedirectResponse("/dashboard", status_code=302)
-
-@app.get("/dashboard")
-def dashboard():
-    global current_user_email
-    if not current_user_email:
-        return RedirectResponse("/login", status_code=302)
-
-    db = SessionLocal()
-    user = db.query(User).filter(User.email == current_user_email).first()
-    if not user:
-        return "Usuário não encontrado. Faça login novamente."
-
-    # Exemplo de feedbacks:
-    feedbacks = [
-        {"from_phone": "+551199999999", "transcript": "Excelente serviço!", "sentiment": "positivo"},
-        {"from_phone": "+551188888888", "transcript": "Não gostei do atraso", "sentiment": "negativo"}
-    ]
-    feedbacks_html = ""
-    for f in feedbacks:
-        feedbacks_html += f"<li>De {f['from_phone']}: {f['transcript']} (Sentimento: {f['sentiment']})</li>"
-
-    context = {
-        "USER_EMAIL": user.email,
-        "PLAN": user.plan,
-        "FEEDBACKS_LIST": feedbacks_html
-    }
-    return render_page("dashboard.html", context=context)
-
 ########################
-#  ASSINATURA FREE
-########################
-
-@app.post("/subscribe_free")
-def subscribe_free():
-    """
-    Se user quiser plano free (sem stripe).
-    """
-    global current_user_email
-    if not current_user_email:
-        return RedirectResponse("/login", status_code=302)
-
-    db = SessionLocal()
-    user = db.query(User).filter(User.email == current_user_email).first()
-    if user:
-        user.plan = "free"
-        db.commit()
-    return RedirectResponse("/dashboard", status_code=302)
-
-########################
-#   STRIPE CHECKOUT
+# CHECKOUT: PRO / ENTERPRISE
 ########################
 
 @app.get("/checkout/{plan}")
 def create_checkout_session(plan: str):
     """
-    Cria sessão de checkout para Pro ou Enterprise. 
-    Salva user_id e plan no metadata, para atualizar via webhook.
+    Cria sessão do Stripe sem exigir login.
+    Ao concluir, redireciona /onboarding?plan=pro&session_id=xxx
     """
-    global current_user_email
-    if not current_user_email:
-        return RedirectResponse("/login", status_code=302)
-
-    db = SessionLocal()
-    user = db.query(User).filter(User.email == current_user_email).first()
-    if not user:
-        return "Usuário não encontrado. Faça login novamente."
-
     if plan == "pro":
         amount_cents = 24900
         product_name = "Plano Pro"
@@ -217,123 +122,122 @@ def create_checkout_session(plan: str):
                 "quantity": 1
             }],
             mode="payment",
-            success_url=f"{DOMAIN_URL}/success",
+            success_url=f"{DOMAIN_URL}/onboarding?plan={plan}&session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{DOMAIN_URL}/cancel",
             metadata={
-                "user_id": str(user.id),
                 "plan": plan
             }
         )
         return RedirectResponse(session.url)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.get("/success")
-def payment_success():
-    """
-    Mensagem simples de sucesso. 
-    O webhook faz a atualização do plan no DB.
-    """
-    return HTMLResponse("Pagamento concluído com sucesso! Retorne ao /dashboard.")
+        raise HTTPException(400, str(e))
 
 @app.get("/cancel")
 def payment_cancel():
     return HTMLResponse("Pagamento cancelado. Tente novamente ou escolha outro plano.")
 
 ########################
-#   STRIPE WEBHOOK
+# ONBOARDING
+########################
+
+@app.get("/onboarding")
+def get_onboarding(plan: str = "free", session_id: str = ""):
+    """
+    Mostra formulário para criar user. 
+    Ex.: /onboarding?plan=pro&session_id=cs_test_123...
+    """
+    context = {
+        "PLAN": plan,
+        "SESSION_ID": session_id
+    }
+    return render_page("onboarding.html", context)
+
+@app.post("/onboarding")
+def post_onboarding(
+    plan: str = Form(...),
+    session_id: str = Form(""),
+    email: str = Form(...),
+    password: str = Form(...),
+    db=Depends(get_db)
+):
+    """
+    Cria user no DB com 'plan' (que o user pagou).
+    """
+    # Hashea a senha
+    hashed_pw = bcrypt.hash(password)
+    # Cria e salva no DB
+    new_user = User(email=email, password_hash=hashed_pw, plan=plan)
+    db.add(new_user)
+    db.commit()
+
+    return RedirectResponse("/dashboard", status_code=302)
+
+########################
+# DASHBOARD
+########################
+
+@app.get("/dashboard")
+def dashboard():
+    return HTMLResponse(
+        "Bem-vindo ao Dashboard! (Em produção, use login e associar user.)"
+    )
+
+########################
+# STRIPE WEBHOOK
 ########################
 
 @app.post("/stripe-webhook")
 async def stripe_webhook(request: Request):
     """
-    Recebe 'checkout.session.completed' contendo user_id e plan no metadata,
-    atualiza user.plan no DB.
+    Se quiser usar o webhook p/ algo extra. 
+    Aqui não atualizamos user porque criamos user depois do pagamento (onboarding).
+    Mas se você quiser, use metadata e associe.
     """
     if not STRIPE_WEBHOOK_SECRET:
-        return {"status": "webhook not secure - set STRIPE_WEBHOOK_SECRET"}
+        return {"status": "webhook not secure"}
 
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
     try:
         event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
     except (ValueError, stripe.error.SignatureVerificationError):
-        raise HTTPException(status_code=400, detail="Invalid signature")
+        raise HTTPException(400, "Invalid signature")
 
     if event["type"] == "checkout.session.completed":
+        # Se quiser algo extra
         session_obj = event["data"]["object"]
-        user_id = session_obj["metadata"].get("user_id")
         plan = session_obj["metadata"].get("plan")
-        if user_id and plan:
-            db = SessionLocal()
-            user = db.query(User).filter(User.id == int(user_id)).first()
-            if user:
-                user.plan = plan
-                db.commit()
-                print(f"[Stripe Hook] User {user.email} => plan={plan}")
-            db.close()
-
+        print(f"[StripeWebhook] Payment completed. Plan = {plan}")
     return {"status": "ok"}
 
 ########################
-#  WHATSAPP WEBHOOK
+# (Opcional) FREE
+########################
+
+@app.get("/onboarding_free")
+def onboarding_free():
+    """
+    Ou você pode mandar /onboarding?plan=free
+    e no form 'plan=free'.
+    """
+    return "Implementar se quiser"
+
+########################
+#  WHATSAPP WEBHOOK (Opcional)
 ########################
 
 @app.get("/webhook")
-def verify_whatsapp(hub_mode: str = None,
-                    hub_challenge: str = None,
-                    hub_verify_token: str = None):
+def verify_whatsapp(
+    hub_mode: str = None,
+    hub_challenge: str = None,
+    hub_verify_token: str = None
+):
     if hub_verify_token == WHATSAPP_VERIFY_TOKEN:
         return PlainTextResponse(hub_challenge or "")
-    raise HTTPException(status_code=403, detail="Invalid verify token")
+    raise HTTPException(403, "Invalid verify token")
 
 @app.post("/webhook")
 async def receive_whatsapp(request: Request):
     body = await request.json()
-    entry = body.get("entry", [])
-    if entry:
-        changes = entry[0].get("changes", [])
-        if changes:
-            value = changes[0].get("value", {})
-            messages = value.get("messages", [])
-            if messages:
-                msg = messages[0]
-                from_phone = msg.get("from")
-                msg_type = msg.get("type")
-                if msg_type == "text":
-                    text_body = msg["text"]["body"]
-                    send_whatsapp_message(from_phone, f"Recebido: {text_body}")
-                elif msg_type == "audio":
-                    audio_id = msg["audio"]["id"]
-                    audio_url = get_media_url(audio_id, ACCESS_TOKEN)
-                    audio_file = download_file(audio_url, ACCESS_TOKEN)
-                    send_whatsapp_message(from_phone, "Seu áudio foi processado!")
+    # ...
     return {"status": "ok"}
-
-def get_media_url(media_id, token):
-    url = f"https://graph.facebook.com/v16.0/{media_id}"
-    headers = {"Authorization": f"Bearer {token}"}
-    resp = requests.get(url, headers=headers).json()
-    return resp["url"]
-
-def download_file(file_url, token):
-    resp = requests.get(file_url, headers={"Authorization": f"Bearer {token}"})
-    filename = "audio.ogg"
-    with open(filename, "wb") as f:
-        f.write(resp.content)
-    return filename
-
-def send_whatsapp_message(to, text):
-    url = f"https://graph.facebook.com/v16.0/{PHONE_NUMBER_ID}/messages"
-    headers = {
-        "Authorization": f"Bearer {ACCESS_TOKEN}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "messaging_product": "whatsapp",
-        "to": to,
-        "text": {"body": text}
-    }
-    r = requests.post(url, json=payload, headers=headers)
-    if r.status_code != 200:
-        print("Erro ao enviar mensagem:", r.text)
