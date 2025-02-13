@@ -102,34 +102,56 @@ body {
   margin: 0 auto;
   justify-content: center;
 }
+
+/* 
+   Aqui está o crucial:
+   - display: flex + flex-direction: column
+   - justify-content: space-between
+   - faz o conteúdo expandir e empurra o botão para base
+*/
 .pricing-card {
   border: 1px solid #ddd;
-  padding: 2rem;
   border-radius: 8px;
   width: 280px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;  
+  justify-content: space-between;
   text-align: center;
 }
+
 .pricing-card h3 {
   margin-bottom: 1rem;
   font-size: 1.25rem;
 }
+
 .price {
   font-size: 1.5rem;
   font-weight: 600;
   margin-bottom: 1rem;
 }
+
+/* Lista de features */
 .pricing-card ul {
   list-style: none;
-  text-align: left;
   margin: 1rem auto;
   padding: 0;
   max-width: 200px;
+  text-align: left;
 }
 .pricing-card li {
   margin-bottom: 0.5rem;
 }
+
+/* Form que contém o botão */
+.pricing-card form {
+  margin-top: auto; /* empurra o form para o fim do card */
+  display: flex;
+  justify-content: center; /* centraliza o botão */
+}
+
+/* Botão dentro do pricing card */
 .pricing-card button {
-  margin-top: 1.5rem;
   padding: 0.5rem 1rem;
   border: 1px solid #000;
   background: #000;
@@ -137,6 +159,7 @@ body {
   border-radius: 2rem;
   cursor: pointer;
   font-weight: 500;
+  transition: background-color 0.3s ease;
 }
 .pricing-card button:hover {
   background: #333;
