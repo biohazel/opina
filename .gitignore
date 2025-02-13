@@ -1,62 +1,19 @@
-# .gitignore
-
-# Byte-compiled / optimized / DLL files
+# Byte-compiled
 __pycache__/
 *.py[cod]
-*$py.class
 
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Virtual environments
-venv/
+# Virtual env
 .venv/
+venv/
 
-# PyInstaller
-*.spec
+# Env
+.env
+.env.*
 
-# Mac / Windows junk
+# Mac/Win junk
 .DS_Store
 Thumbs.db
-
-# Logs
-*.log
 
 # Docker
 *.pid
 *.pid.lock
-
-# Environment variables
-.env
-.env.*
-
-# Jupyter notebooks checkpoints
-.ipynb_checkpoints
-
-# If using coverage
-htmlcov/
-.coverage
-.coverage.*
-
-# Mypy cache
-.mypy_cache/
-dmypy.json
-dmypy.log
-
-# Pyre type checker
-.pyre/

@@ -1,13 +1,49 @@
-<!-- app/templates/login.html -->
-{% extends "base.html" %}
-{% block title %}Login{% endblock %}
-{% block content %}
-<div class="container" style="padding: 8rem 0;">
-  <h2>Login</h2>
-  <form method="post" action="/login" style="margin-top: 2rem;">
-    <label>Email: <input type="text" name="email"></label><br><br>
-    <label>Senha: <input type="password" name="password"></label><br><br>
-    <button>Entrar</button>
-  </form>
-</div>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Opina (Login)</title>
+
+  <!-- Fonte Work Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link 
+    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="navbar">
+      <ul class="nav-menu">
+        <li><a href="/">Home</a></li>
+        <li><a href="/dashboard">Dashboard</a></li>
+        <li><a href="/login">Login</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <section style="padding:5rem 2rem; max-width:500px; margin:0 auto; text-align:center;">
+    <h2>Login</h2>
+    <form method="post" action="/login" style="margin-top: 2rem;">
+      <label>Email:<br>
+        <input type="text" name="email" style="width:100%; padding:0.5rem; margin-top:0.5rem;">
+      </label>
+      <br><br>
+      <label>Senha:<br>
+        <input type="password" name="password" style="width:100%; padding:0.5rem; margin-top:0.5rem;">
+      </label>
+      <br><br>
+      <button style="padding: 0.5rem 1rem; border:none; background:#000; color:#fff; border-radius:2rem;">
+        Entrar
+      </button>
+    </form>
+  </section>
+
+  <footer class="site-footer">
+    <p>© 2025 Opina — Todos os direitos reservados.</p>
+  </footer>
+</body>
+</html>

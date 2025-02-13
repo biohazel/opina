@@ -1,4 +1,5 @@
 import os
+import re
 import requests
 import stripe
 
@@ -7,16 +8,20 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import PlainTextResponse
 
-# === SQLAlchemy Imports ===
+# SQLAlchemy
 from sqlalchemy import create_engine, Column, Integer, String, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base
 from datetime import datetime
 
-# === Passlib (bcrypt) ===
+# Passlib p/ bcrypt
 from passlib.hash import bcrypt
 
+# Authlib p/ Google OAuth
+from authlib.integrations.starlette_client import OAuth
+from starlette.config import Config
+
 ########################
-# FASTAPI + STATIC
+# FASTAPI e STATIC
 ########################
 
 app = FastAPI()
@@ -36,7 +41,9 @@ DOMAIN_URL = os.getenv("DOMAIN_URL", "http://localhost:8000")
 
 DATABASE_URL = os.getenv("DATABASE_URL", "")
 
-# Configura Stripe
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+
 stripe.api_key = STRIPE_SECRET_KEY
 
 ########################
@@ -44,22 +51,51 @@ stripe.api_key = STRIPE_SECRET_KEY
 ########################
 
 if not DATABASE_URL:
-    raise RuntimeError("DATABASE_URL is not set")
+    raise RuntimeError("DATABASE_URL not set")
 
 engine = create_engine(DATABASE_URL, echo=False)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+class TempIdCounter(Base):
+    __tablename__ = "temp_id_counter"
+    id = Column(Integer, primary_key=True, index=True)   # fixo = 1
+    current_value = Column(Integer, default=0)
+
 class User(Base):
     __tablename__ = "users"
-
     id = Column(Integer, primary_key=True, index=True)
+
+    # Inteiro que mapeia p/ metadata do Stripe
+    temp_id = Column(Integer, unique=True, index=True, nullable=True)
+
+    full_name = Column(String)
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
+    doc_number = Column(String)
+
+    cep = Column(String)
+    rua = Column(String)
+    numero = Column(String)
+    complemento = Column(String)
+    bairro = Column(String)
+    cidade = Column(String)
+    estado = Column(String)
+    pais = Column(String)
+
+    whatsapp_phone = Column(String)
     plan = Column(String, default="free")
     created_at = Column(DateTime, default=datetime.utcnow)
 
 Base.metadata.create_all(bind=engine)
+
+# garante que exista 1 registro no temp_id_counter
+db_init = SessionLocal()
+ctr = db_init.query(TempIdCounter).first()
+if not ctr:
+    db_init.add(TempIdCounter(id=1, current_value=0))
+    db_init.commit()
+db_init.close()
 
 def get_db():
     db = SessionLocal()
@@ -69,71 +105,103 @@ def get_db():
         db.close()
 
 ########################
-# Render Page Helper
+# Função p/ gerar temp_id
 ########################
 
-def render_page(html_name: str, context: dict = None) -> HTMLResponse:
-    path = os.path.join("app", "templates", html_name)
+def get_and_increment_temp_id(db):
+    row = db.query(TempIdCounter).filter(TempIdCounter.id==1).first()
+    row.current_value += 1
+    db.commit()
+    return row.current_value
+
+########################
+# Helper p/ renderizar HTML
+########################
+
+def render_page(file_name: str, context: dict=None):
+    path = os.path.join("app", "templates", file_name)
     with open(path, "r", encoding="utf-8") as f:
-        html_content = f.read()
+        html = f.read()
     if context:
-        for key, val in context.items():
-            placeholder = f"{{{{{key}}}}}"
-            html_content = html_content.replace(placeholder, val)
-    return HTMLResponse(content=html_content)
+        for k,v in context.items():
+            html = html.replace(f"{{{{{k}}}}}", v)
+    return HTMLResponse(html)
 
 ########################
-# ROTAS PRINCIPAIS
+# GOOGLE OAUTH
+########################
+
+config = Config(environ={
+    "GOOGLE_CLIENT_ID": GOOGLE_CLIENT_ID,
+    "GOOGLE_CLIENT_SECRET": GOOGLE_CLIENT_SECRET
+})
+oauth = OAuth(config)
+oauth.register(
+    name="google",
+    client_id=GOOGLE_CLIENT_ID,
+    client_secret=GOOGLE_CLIENT_SECRET,
+    server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+    client_kwargs={"scope": "openid email profile"},
+)
+
+@app.get("/login/google")
+async def login_google(request: Request):
+    redirect_uri = f"{DOMAIN_URL}/auth/google/callback"
+    return await oauth.google.authorize_redirect(request, redirect_uri)
+
+@app.get("/auth/google/callback")
+async def google_callback(request: Request):
+    token = await oauth.google.authorize_access_token(request)
+    userinfo = token.get("userinfo", {})
+    email = userinfo.get("email", "")
+    name = userinfo.get("name", "")
+
+    # redireciona p/ onboarding com plan=free ou algo
+    return RedirectResponse(f"/onboarding?plan=free&google_email={email}&google_name={name}")
+
+########################
+# HOME + CHECKOUT
 ########################
 
 @app.get("/")
 def home():
-    # Renderiza "home.html" com os planos. 
     return render_page("home.html")
 
-########################
-# CHECKOUT: PRO/ENTERPRISE
-########################
-
 @app.get("/checkout/{plan}")
-def create_checkout_session(plan: str):
-    """
-    Cria a sessão do Stripe sem login.
-    Usa apenas "card" como método de pagamento.
-    Ao concluir, Stripe redireciona para:
-        /onboarding?plan=pro&session_id=cs_xxx
-    """
-    if plan == "pro":
-        amount_cents = 24900
-        product_name = "Plano Pro"
-    elif plan == "enterprise":
-        amount_cents = 99900
-        product_name = "Plano Enterprise"
+def checkout(plan: str, db=Depends(get_db)):
+    if plan=="pro":
+        amount_cents=24900
+        product_name="Plano Pro"
+    elif plan=="enterprise":
+        amount_cents=99900
+        product_name="Plano Enterprise"
     else:
-        raise HTTPException(status_code=400, detail="Plano inválido")
+        raise HTTPException(400, "Plano inválido")
+
+    temp_id = get_and_increment_temp_id(db)
 
     try:
-        session = stripe.checkout.Session.create(
-            payment_method_types=["card"],  # somente cartão
+        session_data = stripe.checkout.Session.create(
+            payment_method_types=["card"],
             line_items=[{
                 "price_data": {
-                    "currency": "brl",
-                    "product_data": {"name": product_name},
+                    "currency":"brl",
+                    "product_data":{"name":product_name},
                     "unit_amount": amount_cents
                 },
-                "quantity": 1
+                "quantity":1
             }],
             mode="payment",
-            success_url=f"{DOMAIN_URL}/onboarding?plan={plan}&session_id={{CHECKOUT_SESSION_ID}}",
+            success_url=f"{DOMAIN_URL}/onboarding?plan={plan}&temp_id={temp_id}&session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{DOMAIN_URL}/cancel",
             metadata={
+                "temp_id": str(temp_id),
                 "plan": plan
             }
         )
-        # Redireciona imediatamente p/ Stripe
-        return RedirectResponse(session.url)
+        return RedirectResponse(session_data.url)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(400, str(e))
 
 @app.get("/cancel")
 def payment_cancel():
@@ -144,45 +212,84 @@ def payment_cancel():
 ########################
 
 @app.get("/onboarding")
-def get_onboarding(plan: str = "free", session_id: str = ""):
-    """
-    Exibe o formulário de Onboarding. 
-    /onboarding.html deve usar {{PLAN}} e {{SESSION_ID}} para exibir/ocultar se quiser.
-    """
+def onboarding_get(
+    plan:str="free",
+    temp_id:str="",
+    session_id:str="",
+    google_email:str="",
+    google_name:str=""
+):
     context = {
         "PLAN": plan,
-        "SESSION_ID": session_id
+        "TEMP_ID": temp_id,
+        "SESSION_ID": session_id,
+        "GOOGLE_EMAIL": google_email,
+        "GOOGLE_NAME": google_name
     }
     return render_page("onboarding.html", context)
 
 @app.post("/onboarding")
-def post_onboarding(
-    plan: str = Form(...),
-    session_id: str = Form(""),
+def onboarding_post(
+    full_name: str = Form(...),
     email: str = Form(...),
     password: str = Form(...),
+    doc_number: str = Form(""),
+
+    cep: str = Form(""),
+    rua: str = Form(""),
+    numero: str = Form(""),
+    complemento: str = Form(""),
+    bairro: str = Form(""),
+    cidade: str = Form(""),
+    estado: str = Form(""),
+    pais: str = Form(""),
+
+    whatsapp_phone: str = Form(""),
+    plan: str = Form("free"),
+    temp_id: str = Form(""),
+    session_id: str = Form(""),
+
     db=Depends(get_db)
 ):
-    """
-    Cria user no DB com 'plan'. 
-    A senha é hasheada com bcrypt, e ao final 
-    redirecionamos ao /dashboard.
-    """
+    # limpa doc_number
+    doc_clean = re.sub(r"\D","", doc_number)
+    phone_clean = re.sub(r"\D","", whatsapp_phone)
+    cep_clean = re.sub(r"\D","", cep)
+
+    # hasheia a senha
     hashed_pw = bcrypt.hash(password)
-    new_user = User(email=email, password_hash=hashed_pw, plan=plan)
-    db.add(new_user)
+
+    # convert temp_id
+    try:
+        tid = int(temp_id)
+    except:
+        tid = None
+
+    user = User(
+        temp_id=tid,
+        full_name=full_name,
+        email=email,
+        password_hash=hashed_pw,
+        doc_number=doc_clean,
+        cep=cep_clean,
+        rua=rua,
+        numero=numero,
+        complemento=complemento,
+        bairro=bairro,
+        cidade=cidade,
+        estado=estado,
+        pais=pais,
+        whatsapp_phone=phone_clean,
+        plan=plan
+    )
+    db.add(user)
     db.commit()
 
-    # poderia logar user ou exibir msg
-    return RedirectResponse("/dashboard", status_code=302)
-
-########################
-# DASHBOARD
-########################
+    return RedirectResponse("/dashboard", 302)
 
 @app.get("/dashboard")
 def dashboard():
-    return HTMLResponse("Bem-vindo ao Dashboard! (Em produção, implemente login para gerenciar este user.)")
+    return HTMLResponse("Bem-vindo ao Dashboard! (Implemente login e exiba dados do user se quiser).")
 
 ########################
 # STRIPE WEBHOOK
@@ -190,42 +297,36 @@ def dashboard():
 
 @app.post("/stripe-webhook")
 async def stripe_webhook(request: Request):
-    """
-    Caso queira usar no futuro para algo adicional (ex.: logs, reconciliação).
-    Não atualizamos 'plan' aqui, porque estamos criando user APÓS pagamento.
-    """
     if not STRIPE_WEBHOOK_SECRET:
-        return {"status": "webhook not secure"}
+        return {"status":"webhook not secure"}
 
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
     try:
         event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
     except (ValueError, stripe.error.SignatureVerificationError):
-        raise HTTPException(status_code=400, detail="Invalid signature")
+        raise HTTPException(400,"Invalid signature")
 
-    if event["type"] == "checkout.session.completed":
-        session_obj = event["data"]["object"]
-        plan = session_obj["metadata"].get("plan")
-        print(f"[StripeWebhook] Payment completed. Plan = {plan}")
-        # Ex.: Log ou mandar e-mail
-    return {"status": "ok"}
+    if event["type"]=="checkout.session.completed":
+        sess = event["data"]["object"]
+        meta = sess.get("metadata",{})
+        print(f"[Stripe] Payment done. temp_id={meta.get('temp_id')} plan={meta.get('plan')}")
+    return {"status":"ok"}
 
 ########################
-#  WHATSAPP WEBHOOK (Opcional)
+# WHATSAPP WEBHOOK
 ########################
 
 @app.get("/webhook")
 def verify_whatsapp(
-    hub_mode: str = None,
-    hub_challenge: str = None,
-    hub_verify_token: str = None
+    hub_mode:str=None,
+    hub_challenge:str=None,
+    hub_verify_token:str=None
 ):
-    if hub_verify_token == WHATSAPP_VERIFY_TOKEN:
+    if hub_verify_token==WHATSAPP_VERIFY_TOKEN:
         return PlainTextResponse(hub_challenge or "")
-    raise HTTPException(status_code=403, detail="Invalid verify token")
+    raise HTTPException(403,"Invalid verify token")
 
 @app.post("/webhook")
 async def receive_whatsapp(request: Request):
-    # Exemplo parcial
-    return {"status": "ok"}
+    return {"status":"ok"}

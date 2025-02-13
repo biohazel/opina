@@ -14,17 +14,20 @@
   <link rel="stylesheet" href="/static/styles.css">
 
   <script>
-    // Função p/ buscar CEP com viacep
     async function buscaCEP() {
-      let cepInput = document.getElementById('cep');
-      let cep = cepInput.value.replace(/\D/g,''); // remove nao-digitos
-      if(cep.length === 8) {
+      let cepField = document.getElementById('cep');
+      let cep = cepField.value.replace(/\D/g,'');
+      if (cep.length === 8) {
         try {
           let resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
           let data = await resp.json();
-          if(!data.erro) {
-            let addr = document.getElementById('address');
-            addr.value = `${data.logradouro}, ${data.bairro}, ${data.localidade} - ${data.uf}`;
+          if(!data.erro){
+            document.getElementById('rua').value = data.logradouro || "";
+            document.getElementById('bairro').value = data.bairro || "";
+            document.getElementById('cidade').value = data.localidade || "";
+            document.getElementById('estado').value = data.uf || "";
+            // país = "Brasil" fixo (opcional)
+            document.getElementById('pais').value = "Brasil";
           }
         } catch(e){}
       }
@@ -41,7 +44,7 @@
     </nav>
   </header>
 
-  <section class="info-section" style="max-width: 600px; margin:0 auto; text-align:left;">
+  <section class="info-section" style="max-width: 700px; margin:0 auto; text-align:left;">
     <h1>Onboarding</h1>
     <p>Precisamos de alguns dados para concluir seu cadastro e emitir notas fiscais.</p>
 
@@ -51,23 +54,17 @@
     </div>
 
     <form method="post" action="/onboarding" style="display:flex; flex-direction:column; gap:1rem;">
-      <!-- Hidden inputs para plan e temp_id e session_id -->
+      <!-- Hidden inputs -->
       <input type="hidden" name="plan" value="{{PLAN}}">
       <input type="hidden" name="temp_id" value="{{TEMP_ID}}">
       <input type="hidden" name="session_id" value="{{SESSION_ID}}">
 
       <label>Nome Completo:
-        <input type="text" name="full_name" 
-               placeholder="Seu nome completo" 
-               value="{{GOOGLE_NAME}}" 
-               required>
+        <input type="text" name="full_name" placeholder="Seu nome completo" value="{{GOOGLE_NAME}}" required>
       </label>
 
       <label>Email:
-        <input type="email" name="email" 
-               placeholder="voce@exemplo.com" 
-               value="{{GOOGLE_EMAIL}}"
-               required>
+        <input type="email" name="email" placeholder="voce@exemplo.com" value="{{GOOGLE_EMAIL}}" required>
       </label>
 
       <label>Crie uma Senha:
@@ -75,22 +72,46 @@
       </label>
 
       <label>CPF ou CNPJ:
-        <input type="text" name="doc_number" placeholder="000.000.000-00 ou 00.000.000/0001-00">
+        <input type="text" name="doc_number" placeholder="Somente números ou formatado">
       </label>
 
       <label>CEP:
-        <input type="text" id="cep" name="cep" placeholder="Somente números" onblur="buscaCEP()">
+        <input type="text" id="cep" name="cep" placeholder="00000000" onblur="buscaCEP()">
       </label>
 
-      <label>Endereço:
-        <input type="text" id="address" name="address" placeholder="Rua, Número, Bairro, Cidade/UF">
+      <label>Rua:
+        <input type="text" id="rua" name="rua">
+      </label>
+
+      <label>Número:
+        <input type="text" id="numero" name="numero">
+      </label>
+
+      <label>Complemento:
+        <input type="text" id="complemento" name="complemento">
+      </label>
+
+      <label>Bairro:
+        <input type="text" id="bairro" name="bairro">
+      </label>
+
+      <label>Cidade:
+        <input type="text" id="cidade" name="cidade">
+      </label>
+
+      <label>Estado (UF):
+        <input type="text" id="estado" name="estado">
+      </label>
+
+      <label>País:
+        <input type="text" id="pais" name="pais" placeholder="Brasil">
       </label>
 
       <label>WhatsApp:
         <input type="tel" name="whatsapp_phone" placeholder="(99) 99999-9999">
       </label>
 
-      <div>
+      <div style="margin-top:1rem;">
         <input type="checkbox" id="accept_terms" required>
         <label for="accept_terms">
           Li e aceito os <a href="#" target="_blank">Termos de Uso</a> e a 
@@ -105,7 +126,7 @@
   </section>
 
   <footer class="site-footer">
-    <p>© 2025 Opina — Todos os direitos reservados.</p>
+    <p>© 2025 Opina - Todos os direitos reservados.</p>
   </footer>
 </body>
 </html>
