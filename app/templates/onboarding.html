@@ -12,106 +12,98 @@
     href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="/static/styles.css">
-
-  <script>
-    async function buscaCEP() {
-      let cepField = document.getElementById('cep');
-      let cep = cepField.value.replace(/\D/g,'');
-      if (cep.length === 8) {
-        try {
-          let resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-          let data = await resp.json();
-          if(!data.erro){
-            document.getElementById('rua').value = data.logradouro || "";
-            document.getElementById('bairro').value = data.bairro || "";
-            document.getElementById('cidade').value = data.localidade || "";
-            document.getElementById('estado').value = data.uf || "";
-            // país = "Brasil" fixo (opcional)
-            document.getElementById('pais').value = "Brasil";
-          }
-        } catch(e){}
-      }
-    }
-  </script>
 </head>
 <body>
-  <header class="site-header">
-    <nav class="navbar">
-      <ul class="nav-menu">
-        <li><a href="/">Home</a></li>
-        <li><a href="/dashboard">Dashboard</a></li>
-      </ul>
-    </nav>
-  </header>
 
-  <section class="info-section" style="max-width: 700px; margin:0 auto; text-align:left;">
-    <h1>Onboarding</h1>
-    <p>Precisamos de alguns dados para concluir seu cadastro e emitir notas fiscais.</p>
+<!-- 
+  Removemos o header inteiro para não exibir o menu superior com bullets 
+  (caso queira manter um logo ou “Entrar” no canto superior, basta inserir 
+   algo no lugar deste comentário.)
+-->
 
-    <!-- Botão "Login via Google" -->
-    <div style="margin:1rem 0;">
-      <a href="/login/google" class="btn-plan">Login via Google</a>
-    </div>
+<div class="center-container">
 
-    <form method="post" action="/onboarding" style="display:flex; flex-direction:column; gap:1rem;">
+  <!-- Cartão de formulário com borda sutil, lembrando o Stripe -->
+  <div class="form-card">
+
+    <h1 class="form-title">Onboarding</h1>
+    <p class="form-subtitle">
+      Precisamos de alguns dados para concluir seu cadastro e emitir notas fiscais.
+    </p>
+
+    <!-- Formulário de cadastro -->
+    <form method="post" action="/onboarding" class="onboarding-form">
       <!-- Hidden inputs -->
       <input type="hidden" name="plan" value="{{PLAN}}">
       <input type="hidden" name="temp_id" value="{{TEMP_ID}}">
       <input type="hidden" name="session_id" value="{{SESSION_ID}}">
 
-      <label>Nome Completo:
-        <input type="text" name="full_name" placeholder="Seu nome completo" value="{{GOOGLE_NAME}}" required>
-      </label>
+      <div class="form-group">
+        <label for="full_name">Nome Completo</label>
+        <input type="text" id="full_name" name="full_name" required>
+      </div>
 
-      <label>Email:
-        <input type="email" name="email" placeholder="voce@exemplo.com" value="{{GOOGLE_EMAIL}}" required>
-      </label>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required>
+      </div>
 
-      <label>Crie uma Senha:
-        <input type="password" name="password" placeholder="Crie uma senha" required>
-      </label>
+      <div class="form-group">
+        <label for="password">Crie uma Senha</label>
+        <input type="password" id="password" name="password" required>
+      </div>
 
-      <label>CPF ou CNPJ:
-        <input type="text" name="doc_number" placeholder="Somente números ou formatado">
-      </label>
+      <div class="form-group">
+        <label for="doc_number">CPF ou CNPJ</label>
+        <input type="text" id="doc_number" name="doc_number" placeholder="Somente números ou formatado">
+      </div>
 
-      <label>CEP:
+      <div class="form-group">
+        <label for="cep">CEP</label>
         <input type="text" id="cep" name="cep" placeholder="00000000" onblur="buscaCEP()">
-      </label>
+      </div>
 
-      <label>Rua:
+      <div class="form-group">
+        <label for="rua">Rua</label>
         <input type="text" id="rua" name="rua">
-      </label>
+      </div>
 
-      <label>Número:
+      <div class="form-group">
+        <label for="numero">Número</label>
         <input type="text" id="numero" name="numero">
-      </label>
+      </div>
 
-      <label>Complemento:
+      <div class="form-group">
+        <label for="complemento">Complemento</label>
         <input type="text" id="complemento" name="complemento">
-      </label>
+      </div>
 
-      <label>Bairro:
+      <div class="form-group">
+        <label for="bairro">Bairro</label>
         <input type="text" id="bairro" name="bairro">
-      </label>
+      </div>
 
-      <label>Cidade:
+      <div class="form-group">
+        <label for="cidade">Cidade</label>
         <input type="text" id="cidade" name="cidade">
-      </label>
+      </div>
 
-      <label>Estado (UF):
+      <div class="form-group">
+        <label for="estado">Estado (UF)</label>
         <input type="text" id="estado" name="estado">
-      </label>
+      </div>
 
-      <label>País:
-        <input type="text" id="pais" name="pais" placeholder="Brasil">
-      </label>
+      <div class="form-group">
+        <label for="pais">País</label>
+        <input type="text" id="pais" name="pais" value="Brasil">
+      </div>
 
-      <label>WhatsApp:
-        <input type="tel" name="whatsapp_phone" placeholder="(99) 99999-9999">
-      </label>
+      <div class="form-group">
+        <label for="whatsapp_phone">WhatsApp</label>
+        <input type="tel" id="whatsapp_phone" name="whatsapp_phone" placeholder="(99) 99999-9999">
+      </div>
 
-      <div style="margin-top:1rem;">
+      <div class="form-check">
         <input type="checkbox" id="accept_terms" required>
         <label for="accept_terms">
           Li e aceito os <a href="#" target="_blank">Termos de Uso</a> e a 
@@ -119,14 +111,39 @@
         </label>
       </div>
 
-      <button type="submit" class="btn-plan" style="border:none; margin-top:1rem;">
+      <button type="submit" class="btn-plan btn-block">
         Concluir Onboarding
       </button>
     </form>
-  </section>
 
-  <footer class="site-footer">
-    <p>© 2025 Opina - Todos os direitos reservados.</p>
-  </footer>
+    <p class="already-account">
+      Já tem conta? <a href="/login">Entrar</a>
+    </p>
+
+  </div> <!-- fim .form-card -->
+
+</div><!-- fim .center-container -->
+
+
+<!-- Script CEP (mantido) -->
+<script>
+  async function buscaCEP() {
+    let cepField = document.getElementById('cep');
+    let cep = cepField.value.replace(/\D/g,'');
+    if (cep.length === 8) {
+      try {
+        let resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        let data = await resp.json();
+        if(!data.erro){
+          document.getElementById('rua').value = data.logradouro || "";
+          document.getElementById('bairro').value = data.bairro || "";
+          document.getElementById('cidade').value = data.localidade || "";
+          document.getElementById('estado').value = data.uf || "";
+          document.getElementById('pais').value = "Brasil";
+        }
+      } catch(e){}
+    }
+  }
+</script>
 </body>
 </html>
