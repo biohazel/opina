@@ -2,70 +2,41 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Opina</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Opina - Home</title>
 
-  <!-- Fonte Work Sans -->
+  <!-- Fonte e CSS -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link 
     href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap"
     rel="stylesheet">
-
-  <!-- CSS local em /static/styles.css -->
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
 
+  <!-- Header Simplificado -->
   <header class="site-header">
-    <nav class="navbar">
-      <ul class="nav-menu">
-        <li><a href="#produto">Produto</a></li>
-        <li><a href="#depoimentos">Depoimentos</a></li>
-        <li><a href="#planos">Planos</a></li>
-        <li><a href="/dashboard">Dashboard</a></li>
-        <li><a href="#testeja">Teste Já</a></li>
-      </ul>
-    </nav>
+    <!-- Logo no canto esquerdo -->
+    <a class="logo" href="/">Opina</a>
+    <!-- Botão Entrar no canto direito -->
+    <a class="btn-link" href="/login">Entrar</a>
   </header>
 
+  <!-- Hero -->
   <section class="hero">
     <h1 class="hero-title">Opina</h1>
     <p class="hero-subtitle">Feedback de clientes em áudio, direto no WhatsApp, com IA e zero complicação.</p>
-
     <p class="hero-description">
       Colete feedback real e imediato via WhatsApp – com análise de IA em poucos segundos.
     </p>
-
-    <div class="hero-cta" id="testeja">
-      <a href="#planos" class="btn-black">Teste Já</a>
-    </div>
+    <a href="#planos" class="btn-black">Teste Já</a>
   </section>
 
-  <section id="produto" class="info-section">
-    <h2>Produto</h2>
-    <p>
-      Opina é uma plataforma que permite a coleta de feedbacks em áudio diretamente no WhatsApp. 
-      Nossa IA transcreve e analisa sentimentos, entregando insights rápidos em um dashboard amigável.
-    </p>
-  </section>
-
-  <section id="depoimentos" class="info-section">
-    <h2>Depoimentos</h2>
-    <p>
-      "O Opina facilitou muito o processo de entender o que nossos clientes pensam..." 
-      — Maria S.
-    </p>
-    <p>
-      "Simples, direto e com insights de IA!..." — João K.
-    </p>
-  </section>
-
+  <!-- Planos -->
   <section id="planos" class="pricing-section">
     <h2>Escolha seu Plano</h2>
-
     <div class="pricing-grid">
-
       <!-- FREE -->
       <div class="pricing-card">
         <h3>Free</h3>
@@ -76,7 +47,6 @@
           <li>Dashboard básico</li>
           <li>Marca d’água “Opina”</li>
         </ul>
-        <!-- Redireciona ao Onboarding do Free -->
         <a href="/onboarding?plan=free" class="btn-plan">Começar Grátis</a>
       </div>
 
@@ -111,7 +81,7 @@
   </section>
 
   <footer class="site-footer">
-    <p>© 2025 Opina — Todos os direitos reservados.</p>
+    <p>© 2025 Opina — Oi.</p>
   </footer>
 
 </body>
