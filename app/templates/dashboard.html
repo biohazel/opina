@@ -1,42 +1,33 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Opina (Dashboard)</title>
-
-  <!-- Fonte Work Sans -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link 
-    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap"
-    rel="stylesheet">
-
+  <meta charset="utf-8"/>
+  <title>Opina - Dashboard</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-  <header class="site-header">
-    <nav class="navbar">
-      <ul class="nav-menu">
-        <li><a href="/">Home</a></li>
-        <li><a href="/dashboard">Dashboard</a></li>
-        <li><a href="/login">Login</a></li>
-      </ul>
-    </nav>
-  </header>
 
-  <section style="padding:5rem 2rem; max-width:900px; margin:0 auto;">
-    <h2>Meu Dashboard</h2>
-    <p>Bem-vindo, {{USER_EMAIL}}!</p>
-    <hr>
-    <h3>Feedbacks Recentes</h3>
-    <ul>
-      {{FEEDBACKS_LIST}}
-    </ul>
-  </section>
+<header class="site-header">
+  <a class="logo" href="/">Opina</a>
+  <!-- futuro: Botão de logout -->
+</header>
 
-  <footer class="site-footer">
-    <p>© 2025 Opina — Todos os direitos reservados.</p>
-  </footer>
+<section class="dashboard-container">
+  <h1>Dashboard</h1>
+  <p>Veja os feedbacks em tempo real, analise sentimentos e tome decisões!</p>
+
+  <!-- Estatísticas gerais -->
+  <div class="stats-bar">
+    <div class="stats-card">Total Feedbacks: {{TOTAL_FEEDBACKS}}</div>
+    <div class="stats-card">Positivos: {{POSITIVE_PERCENT}}%</div>
+    <div class="stats-card">Negativos: {{NEGATIVE_PERCENT}}%</div>
+  </div>
+
+  <!-- Lista de feedbacks -->
+  <div class="feedback-list">
+    {{FEEDBACK_LIST}}
+  </div>
+</section>
+
 </body>
 </html>
