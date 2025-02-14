@@ -37,6 +37,7 @@ DOMAIN_URL = os.getenv("DOMAIN_URL", "http://localhost:8000")
 
 DATABASE_URL = os.getenv("DATABASE_URL", "")
 
+# Stripe
 stripe.api_key = STRIPE_SECRET_KEY
 
 ########################
@@ -52,7 +53,7 @@ Base = declarative_base()
 
 class TempIdCounter(Base):
     __tablename__ = "temp_id_counter"
-    id = Column(Integer, primary_key=True, index=True)  # fixo = 1
+    id = Column(Integer, primary_key=True, index=True)   # fixo = 1
     current_value = Column(Integer, default=0)
 
 class User(Base):
@@ -117,7 +118,9 @@ def render_page(file_name: str, context: dict=None):
         html = f.read()
     if context:
         for k,v in context.items():
-            html = html.replace(f"{{{{{k}}}}}", v)
+            if v is None:
+                v = ""
+            html = html.replace(f"{{{{{k}}}}}", str(v))
     return HTMLResponse(html)
 
 ########################
@@ -130,12 +133,16 @@ def home():
 
 @app.get("/checkout/{plan}")
 def checkout(plan: str, db=Depends(get_db)):
+    """
+    Cria sessão de checkout no Stripe e redireciona para lá.
+    Ao retornar, iremos p/ /onboarding com plan e temp_id, ou /cancel se não deu certo.
+    """
     if plan=="pro":
-        amount_cents = 24900
-        product_name = "Plano Pro"
+        amount_cents=24900
+        product_name="Plano Pro"
     elif plan=="enterprise":
-        amount_cents = 99900
-        product_name = "Plano Enterprise"
+        amount_cents=99900
+        product_name="Plano Enterprise"
     else:
         raise HTTPException(400, "Plano inválido")
 
@@ -155,10 +162,7 @@ def checkout(plan: str, db=Depends(get_db)):
             mode="payment",
             success_url=f"{DOMAIN_URL}/onboarding?plan={plan}&temp_id={temp_id}&session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{DOMAIN_URL}/cancel",
-            metadata={
-                "temp_id": str(temp_id),
-                "plan": plan
-            }
+            client_reference_id=str(temp_id)  # mapeamos pro metadata
         )
         return RedirectResponse(session_data.url)
     except Exception as e:
@@ -174,14 +178,18 @@ def payment_cancel():
 
 @app.get("/onboarding")
 def onboarding_get(
-    plan: str = "free",
-    temp_id: str = "",
-    session_id: str = ""
+    plan:str="free",
+    temp_id:str="",
+    session_id:str=""
 ):
+    """
+    Se plan=free, não precisa Stripe. 
+    Se plan=pro/enterprise, teoricamente veio do Stripe success, com temp_id gerado.
+    """
     context = {
         "PLAN": plan,
         "TEMP_ID": temp_id,
-        "SESSION_ID": session_id,
+        "SESSION_ID": session_id
     }
     return render_page("onboarding.html", context)
 
@@ -208,15 +216,13 @@ def onboarding_post(
 
     db=Depends(get_db)
 ):
-    # limpa doc_number
+    # limpa doc_number e cep e phone
     doc_clean = re.sub(r"\D","", doc_number)
-    phone_clean = re.sub(r"\D","", whatsapp_phone)
     cep_clean = re.sub(r"\D","", cep)
+    phone_clean = re.sub(r"\D","", whatsapp_phone)
 
-    # hasheia a senha
     hashed_pw = bcrypt.hash(password)
 
-    # convert temp_id
     try:
         tid = int(temp_id)
     except:
@@ -224,18 +230,18 @@ def onboarding_post(
 
     user = User(
         temp_id=tid,
-        full_name=full_name,
-        email=email,
+        full_name=full_name.strip(),
+        email=email.strip().lower(),
         password_hash=hashed_pw,
         doc_number=doc_clean,
         cep=cep_clean,
-        rua=rua,
-        numero=numero,
-        complemento=complemento,
-        bairro=bairro,
-        cidade=cidade,
-        estado=estado,
-        pais=pais,
+        rua=rua.strip(),
+        numero=numero.strip(),
+        complemento=complemento.strip(),
+        bairro=bairro.strip(),
+        cidade=cidade.strip(),
+        estado=estado.strip(),
+        pais=pais.strip(),
         whatsapp_phone=phone_clean,
         plan=plan
     )
@@ -244,16 +250,44 @@ def onboarding_post(
 
     return RedirectResponse("/dashboard", 302)
 
+########################
+# LOGIN
+########################
+@app.get("/login")
+def login_get():
+    return render_page("login.html")
+
+@app.post("/login")
+def login_post(
+    email: str = Form(...),
+    password: str = Form(...),
+    db=Depends(get_db)
+):
+    user = db.query(User).filter(User.email==email.strip().lower()).first()
+    if not user:
+        return HTMLResponse("Usuário não encontrado.", status_code=400)
+
+    if not bcrypt.verify(password, user.password_hash):
+        return HTMLResponse("Senha incorreta.", status_code=400)
+
+    # Se sucesso, redireciona p/ dashboard 
+    # (No futuro: setar session cookie, etc.)
+    return RedirectResponse("/dashboard", 302)
+
+########################
+# DASHBOARD
+########################
 @app.get("/dashboard")
 def dashboard():
-    return HTMLResponse("Bem-vindo ao Dashboard! (Implemente login e exiba dados do user se quiser).")
+    # placeholder
+    return HTMLResponse("<h1>Bem-vindo ao Dashboard!</h1><p>Aqui ficarão os insights e análises.</p>")
 
 ########################
 # STRIPE WEBHOOK
 ########################
 
 @app.post("/stripe-webhook")
-async def stripe_webhook(request: Request):
+async def stripe_webhook(request: Request, db=Depends(get_db)):
     if not STRIPE_WEBHOOK_SECRET:
         return {"status":"webhook not secure"}
 
@@ -266,8 +300,28 @@ async def stripe_webhook(request: Request):
 
     if event["type"]=="checkout.session.completed":
         sess = event["data"]["object"]
-        meta = sess.get("metadata",{})
-        print(f"[Stripe] Payment done. temp_id={meta.get('temp_id')} plan={meta.get('plan')}")
+        temp_id_str = sess.get("client_reference_id")
+        plan = sess.get("metadata",{}).get("plan","")  # se tiver metadata
+        print(f"[Stripe] Payment done. temp_id={temp_id_str} plan={plan}")
+
+        if temp_id_str:
+            try:
+                temp_id_val = int(temp_id_str)
+                # Buscar user no banco com esse temp_id
+                existing_user = db.query(User).filter(User.temp_id==temp_id_val).first()
+                if existing_user:
+                    # Se o user já existir, podemos garantir que user.plan = plan
+                    # ou algo do tipo
+                    existing_user.plan = plan or existing_user.plan
+                    db.commit()
+                else:
+                    # Caso não exista, significa que a pessoa pagou
+                    # mas ainda não preencheu o onboarding
+                    # -> futuro: mandar email lembrando de concluir cadastro
+                    pass
+            except:
+                pass
+
     return {"status":"ok"}
 
 ########################
