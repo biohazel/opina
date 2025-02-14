@@ -53,7 +53,7 @@ Base = declarative_base()
 
 class TempIdCounter(Base):
     __tablename__ = "temp_id_counter"
-    id = Column(Integer, primary_key=True, index=True)   # fixo = 1
+    id = Column(Integer, primary_key=True, index=True)  # fixo = 1
     current_value = Column(Integer, default=0)
 
 class User(Base):
@@ -113,6 +113,7 @@ def get_and_increment_temp_id(db):
 ########################
 
 def render_page(file_name: str, context: dict=None):
+    """ Carrega o HTML do templates/file_name e faz replace de chaves {{...}} se existirem. """
     path = os.path.join("app", "templates", file_name)
     with open(path, "r", encoding="utf-8") as f:
         html = f.read()
@@ -154,10 +155,10 @@ def checkout(plan: str, db=Depends(get_db)):
             line_items=[{
                 "price_data": {
                     "currency":"brl",
-                    "product_data":{"name":product_name},
+                    "product_data": {"name": product_name},
                     "unit_amount": amount_cents
                 },
-                "quantity":1
+                "quantity": 1
             }],
             mode="payment",
             success_url=f"{DOMAIN_URL}/onboarding?plan={plan}&temp_id={temp_id}&session_id={{CHECKOUT_SESSION_ID}}",
@@ -178,12 +179,12 @@ def payment_cancel():
 
 @app.get("/onboarding")
 def onboarding_get(
-    plan:str="free",
-    temp_id:str="",
-    session_id:str=""
+    plan: str = "free",
+    temp_id: str = "",
+    session_id: str = ""
 ):
     """
-    Se plan=free, não precisa Stripe. 
+    Se plan=free, não precisa Stripe.
     Se plan=pro/enterprise, teoricamente veio do Stripe success, com temp_id gerado.
     """
     context = {
@@ -216,10 +217,10 @@ def onboarding_post(
 
     db=Depends(get_db)
 ):
-    # limpa doc_number e cep e phone
-    doc_clean = re.sub(r"\D","", doc_number)
-    cep_clean = re.sub(r"\D","", cep)
-    phone_clean = re.sub(r"\D","", whatsapp_phone)
+    # limpa doc_number e cep e phone, removendo caracteres não numéricos
+    doc_clean = re.sub(r"\D", "", doc_number)
+    cep_clean = re.sub(r"\D", "", cep)
+    phone_clean = re.sub(r"\D", "", whatsapp_phone)
 
     hashed_pw = bcrypt.hash(password)
 
@@ -229,26 +230,26 @@ def onboarding_post(
         tid = None
 
     user = User(
-        temp_id=tid,
-        full_name=full_name.strip(),
-        email=email.strip().lower(),
-        password_hash=hashed_pw,
-        doc_number=doc_clean,
-        cep=cep_clean,
-        rua=rua.strip(),
-        numero=numero.strip(),
-        complemento=complemento.strip(),
-        bairro=bairro.strip(),
-        cidade=cidade.strip(),
-        estado=estado.strip(),
-        pais=pais.strip(),
-        whatsapp_phone=phone_clean,
-        plan=plan
+        temp_id = tid,
+        full_name = full_name.strip(),
+        email = email.strip().lower(),
+        password_hash = hashed_pw,
+        doc_number = doc_clean,
+        cep = cep_clean,
+        rua = rua.strip(),
+        numero = numero.strip(),
+        complemento = complemento.strip(),
+        bairro = bairro.strip(),
+        cidade = cidade.strip(),
+        estado = estado.strip(),
+        pais = pais.strip(),
+        whatsapp_phone = phone_clean,
+        plan = plan
     )
     db.add(user)
     db.commit()
 
-    return RedirectResponse("/dashboard", 302)
+    return RedirectResponse("/dashboard", status_code=302)
 
 ########################
 # LOGIN
@@ -263,16 +264,16 @@ def login_post(
     password: str = Form(...),
     db=Depends(get_db)
 ):
-    user = db.query(User).filter(User.email==email.strip().lower()).first()
+    user = db.query(User).filter(User.email == email.strip().lower()).first()
     if not user:
         return HTMLResponse("Usuário não encontrado.", status_code=400)
 
     if not bcrypt.verify(password, user.password_hash):
         return HTMLResponse("Senha incorreta.", status_code=400)
 
-    # Se sucesso, redireciona p/ dashboard 
+    # Se sucesso, redireciona p/ dashboard
     # (No futuro: setar session cookie, etc.)
-    return RedirectResponse("/dashboard", 302)
+    return RedirectResponse("/dashboard", status_code=302)
 
 ########################
 # DASHBOARD
@@ -283,35 +284,54 @@ def dashboard():
     return HTMLResponse("<h1>Bem-vindo ao Dashboard!</h1><p>Aqui ficarão os insights e análises.</p>")
 
 ########################
+# TERMOS & POLÍTICA
+########################
+
+@app.get("/termos")
+def termos_de_uso():
+    """
+    Renderiza a página de Termos de Uso.
+    Você pode editar o arquivo templates/termos.html para incluir mais detalhes.
+    """
+    return render_page("termos.html")
+
+@app.get("/privacidade")
+def politica_privacidade():
+    """
+    Renderiza a página de Política de Privacidade.
+    Edite templates/privacidade.html conforme necessidade.
+    """
+    return render_page("privacidade.html")
+
+########################
 # STRIPE WEBHOOK
 ########################
 
 @app.post("/stripe-webhook")
 async def stripe_webhook(request: Request, db=Depends(get_db)):
     if not STRIPE_WEBHOOK_SECRET:
-        return {"status":"webhook not secure"}
+        return {"status": "webhook not secure"}
 
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
     try:
         event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
     except (ValueError, stripe.error.SignatureVerificationError):
-        raise HTTPException(400,"Invalid signature")
+        raise HTTPException(400, "Invalid signature")
 
-    if event["type"]=="checkout.session.completed":
+    if event["type"] == "checkout.session.completed":
         sess = event["data"]["object"]
         temp_id_str = sess.get("client_reference_id")
-        plan = sess.get("metadata",{}).get("plan","")  # se tiver metadata
+        plan = sess.get("metadata", {}).get("plan", "")  # se tiver metadata
         print(f"[Stripe] Payment done. temp_id={temp_id_str} plan={plan}")
 
         if temp_id_str:
             try:
                 temp_id_val = int(temp_id_str)
                 # Buscar user no banco com esse temp_id
-                existing_user = db.query(User).filter(User.temp_id==temp_id_val).first()
+                existing_user = db.query(User).filter(User.temp_id == temp_id_val).first()
                 if existing_user:
                     # Se o user já existir, podemos garantir que user.plan = plan
-                    # ou algo do tipo
                     existing_user.plan = plan or existing_user.plan
                     db.commit()
                 else:
@@ -322,7 +342,7 @@ async def stripe_webhook(request: Request, db=Depends(get_db)):
             except:
                 pass
 
-    return {"status":"ok"}
+    return {"status": "ok"}
 
 ########################
 # WHATSAPP WEBHOOK
@@ -330,14 +350,14 @@ async def stripe_webhook(request: Request, db=Depends(get_db)):
 
 @app.get("/webhook")
 def verify_whatsapp(
-    hub_mode:str=None,
-    hub_challenge:str=None,
-    hub_verify_token:str=None
+    hub_mode: str = None,
+    hub_challenge: str = None,
+    hub_verify_token: str = None
 ):
-    if hub_verify_token==WHATSAPP_VERIFY_TOKEN:
+    if hub_verify_token == WHATSAPP_VERIFY_TOKEN:
         return PlainTextResponse(hub_challenge or "")
-    raise HTTPException(403,"Invalid verify token")
+    raise HTTPException(403, "Invalid verify token")
 
 @app.post("/webhook")
 async def receive_whatsapp(request: Request):
-    return {"status":"ok"}
+    return {"status": "ok"}
