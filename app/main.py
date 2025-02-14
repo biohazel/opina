@@ -113,12 +113,19 @@ def get_and_increment_temp_id(db):
 ########################
 
 def render_page(file_name: str, context: dict=None):
-    """ Carrega o HTML do templates/file_name e faz replace de chaves {{...}} se existirem. """
+    """
+    Carrega o HTML de app/templates/<file_name> e substitui {{CHAVES}} se existirem.
+    Certifique-se de que `file_name` existe na pasta app/templates.
+    """
+    import os
     path = os.path.join("app", "templates", file_name)
+    if not os.path.isfile(path):
+        # Se o arquivo não existir, retorna 404
+        raise HTTPException(404, f"Template {file_name} não foi encontrado.")
     with open(path, "r", encoding="utf-8") as f:
         html = f.read()
     if context:
-        for k,v in context.items():
+        for k, v in context.items():
             if v is None:
                 v = ""
             html = html.replace(f"{{{{{k}}}}}", str(v))
@@ -138,12 +145,12 @@ def checkout(plan: str, db=Depends(get_db)):
     Cria sessão de checkout no Stripe e redireciona para lá.
     Ao retornar, iremos p/ /onboarding com plan e temp_id, ou /cancel se não deu certo.
     """
-    if plan=="pro":
-        amount_cents=24900
-        product_name="Plano Pro"
-    elif plan=="enterprise":
-        amount_cents=99900
-        product_name="Plano Enterprise"
+    if plan == "pro":
+        amount_cents = 24900
+        product_name = "Plano Pro"
+    elif plan == "enterprise":
+        amount_cents = 99900
+        product_name = "Plano Enterprise"
     else:
         raise HTTPException(400, "Plano inválido")
 
@@ -154,7 +161,7 @@ def checkout(plan: str, db=Depends(get_db)):
             payment_method_types=["card"],
             line_items=[{
                 "price_data": {
-                    "currency":"brl",
+                    "currency": "brl",
                     "product_data": {"name": product_name},
                     "unit_amount": amount_cents
                 },
@@ -217,7 +224,7 @@ def onboarding_post(
 
     db=Depends(get_db)
 ):
-    # limpa doc_number e cep e phone, removendo caracteres não numéricos
+    # limpa doc_number, cep e phone, removendo caracteres não-numéricos
     doc_clean = re.sub(r"\D", "", doc_number)
     cep_clean = re.sub(r"\D", "", cep)
     phone_clean = re.sub(r"\D", "", whatsapp_phone)
@@ -230,21 +237,21 @@ def onboarding_post(
         tid = None
 
     user = User(
-        temp_id = tid,
-        full_name = full_name.strip(),
-        email = email.strip().lower(),
-        password_hash = hashed_pw,
-        doc_number = doc_clean,
-        cep = cep_clean,
-        rua = rua.strip(),
-        numero = numero.strip(),
-        complemento = complemento.strip(),
-        bairro = bairro.strip(),
-        cidade = cidade.strip(),
-        estado = estado.strip(),
-        pais = pais.strip(),
-        whatsapp_phone = phone_clean,
-        plan = plan
+        temp_id=tid,
+        full_name=full_name.strip(),
+        email=email.strip().lower(),
+        password_hash=hashed_pw,
+        doc_number=doc_clean,
+        cep=cep_clean,
+        rua=rua.strip(),
+        numero=numero.strip(),
+        complemento=complemento.strip(),
+        bairro=bairro.strip(),
+        cidade=cidade.strip(),
+        estado=estado.strip(),
+        pais=pais.strip(),
+        whatsapp_phone=phone_clean,
+        plan=plan
     )
     db.add(user)
     db.commit()
@@ -290,16 +297,14 @@ def dashboard():
 @app.get("/termos")
 def termos_de_uso():
     """
-    Renderiza a página de Termos de Uso.
-    Você pode editar o arquivo templates/termos.html para incluir mais detalhes.
+    Renderiza a página de Termos de Uso (tem que existir app/templates/termos.html).
     """
     return render_page("termos.html")
 
 @app.get("/privacidade")
 def politica_privacidade():
     """
-    Renderiza a página de Política de Privacidade.
-    Edite templates/privacidade.html conforme necessidade.
+    Renderiza a página de Política de Privacidade (tem que existir app/templates/privacidade.html).
     """
     return render_page("privacidade.html")
 
