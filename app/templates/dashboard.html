@@ -1,33 +1,90 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8"/>
+  <meta charset="UTF-8"/>
   <title>Opina - Dashboard</title>
   <link rel="stylesheet" href="/static/styles.css">
+  <style>
+    /* Regras simples de verde/vermelho */
+    .metric-green { color: green; font-weight: 600; }
+    .metric-red { color: red; font-weight: 600; }
+    .stat-box {
+      display: inline-block; 
+      padding: 0.5rem 1rem; 
+      margin: 0.25rem; 
+      border: 1px solid #ccc; 
+      border-radius: 4px;
+    }
+  </style>
 </head>
 <body>
 
 <header class="site-header">
   <a class="logo" href="/">Opina</a>
-  <!-- futuro: Botão de logout -->
+  <nav>
+    <a class="btn-link" href="/logout">Sair</a>
+  </nav>
 </header>
 
-<section class="dashboard-container">
-  <h1>Dashboard</h1>
-  <p>Veja os feedbacks em tempo real, analise sentimentos e tome decisões!</p>
+<div class="center-container" style="align-items:flex-start;">
+  <div style="max-width: 800px; margin:0 auto; width:100%;">
+    <h1>Dashboard</h1>
+    <p>Bem-vindo(a), {{USER_NAME}} (plano: {{PLAN}})!</p>
 
-  <!-- Estatísticas gerais -->
-  <div class="stats-bar">
-    <div class="stats-card">Total Feedbacks: {{TOTAL_FEEDBACKS}}</div>
-    <div class="stats-card">Positivos: {{POSITIVE_PERCENT}}%</div>
-    <div class="stats-card">Negativos: {{NEGATIVE_PERCENT}}%</div>
-  </div>
+    <!-- Barra de métricas -->
+    <div style="margin:1rem 0;">
+      <div class="stat-box">
+        <strong>Total Feedbacks:</strong>
+        <span>{{TOTAL_FEEDBACKS}}</span>
+      </div>
 
-  <!-- Lista de feedbacks -->
-  <div class="feedback-list">
-    {{FEEDBACK_LIST}}
+      <!-- Se a % positiva for acima de 50, põe verde, senão normal; se for >80, pode sinalizar "excelente" etc. -->
+      <div class="stat-box">
+        <strong>% Positivos:</strong>
+        <span 
+          class="
+            {% if float(POSITIVE_PERCENT) >= 50 %}metric-green{% else %}metric-red{% endif %}
+          ">
+          {{POSITIVE_PERCENT}}%
+        </span>
+      </div>
+
+      <div class="stat-box">
+        <strong>% Negativos:</strong>
+        <span
+          class="
+            {% if float(NEGATIVE_PERCENT) >= 50 %}metric-red{% else %}metric-green{% endif %}
+          ">
+          {{NEGATIVE_PERCENT}}%
+        </span>
+      </div>
+    </div>
+
+    <!-- Se for plano free, diz algo tipo: "Faça upgrade para ver análises mais avançadas" -->
+    {% if PLAN == "free" %}
+      <p style="color:#666; font-style:italic;">
+        Você está no plano Free. Atualize para Pro ou Enterprise para ver estatísticas detalhadas e nuvem de palavras.
+      </p>
+    {% else %}
+      <!-- exibe a nuvem se WORDCLOUD_B64 não for vazio -->
+      {% if WORDCLOUD_B64 %}
+        <h3>Nuvem de Palavras</h3>
+        <img 
+          src="data:image/png;base64,{{WORDCLOUD_B64}}" 
+          alt="Nuvem de Palavras"
+          style="display:block; max-width:600px; border:1px solid #ccc; margin:1rem 0;"
+        >
+      {% else %}
+        <p>Nenhuma palavra relevante coletada ainda...</p>
+      {% endif %}
+    {% endif %}
+
+    <h3>Feedbacks Recebidos</h3>
+    <div>
+      {{FEEDBACK_LIST}}
+    </div>
   </div>
-</section>
+</div>
 
 </body>
 </html>
