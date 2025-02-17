@@ -1,4 +1,6 @@
--- Habilitar extensão para usar gen_random_uuid(), se quiser
+-- =========================
+-- (Opcional) Habilitar extensão para gerar UUID automaticamente
+-- =========================
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- =========================
@@ -6,9 +8,25 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 -- =========================
 CREATE TABLE IF NOT EXISTS tenant (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  -- Nome da empresa ou pessoa
   nome TEXT UNIQUE,
-  plano TEXT  -- ex: 'free', 'pro', 'enterprise'
-  -- Adicione campos extras se quiser
+  -- Plano (ex: 'free', 'pro', 'enterprise')
+  plano TEXT,
+
+  -- Campos extras p/ emissão de NF e cadastro
+  doc_number TEXT,
+  cep TEXT,
+  rua TEXT,
+  numero TEXT,
+  complemento TEXT,
+  bairro TEXT,
+  cidade TEXT,
+  estado TEXT,
+  pais TEXT,
+  whatsapp_phone TEXT,
+  email TEXT UNIQUE,
+  password_hash TEXT,
+  created_at TIMESTAMP DEFAULT now()
 );
 
 -- =========================
@@ -25,7 +43,7 @@ CREATE TABLE IF NOT EXISTS feedback (
   criado_em TIMESTAMP NOT NULL DEFAULT now()
 );
 
--- Índice p/ segmentar buscas por tenant
+-- Índice para segmentar buscas por tenant
 CREATE INDEX IF NOT EXISTS idx_feedback_tenant ON feedback(tenant_id);
 
 -- Habilitar Row Level Security
