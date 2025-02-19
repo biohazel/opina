@@ -66,8 +66,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 ###############
-# Se quiser classes ORM, defina aqui (Tenant, Feedback...) 
-# ou use queries text() direto
+# Helpers
 ###############
 
 def get_db():
@@ -79,7 +78,7 @@ def get_db():
 
 def render_page(file_name: str, context: dict = None) -> str:
     """
-    Carrega o template HTML e faz substituição manual de {{CHAVE}}.
+    Carrega o template HTML (ex: dashboard.html) e faz substituição manual de {{CHAVE}}.
     Retorna a string pura (SEM ser HTMLResponse ainda).
     """
     import os
@@ -95,10 +94,10 @@ def render_page(file_name: str, context: dict = None) -> str:
     if context:
         for k, v in context.items():
             html = html.replace(f"{{{{{k}}}}}", str(v if v else ""))
-    return html  # devolve string normal
+    return html
 
 ###############
-# Rotas
+# Rotas Principais
 ###############
 
 @app.get("/")
@@ -107,7 +106,7 @@ def home():
     return HTMLResponse(html_str)
 
 ###############
-# Checkout
+# CHECKOUT
 ###############
 
 @app.get("/checkout/{plan}")
@@ -146,10 +145,10 @@ def checkout(plan: str):
 
 @app.get("/cancel")
 def payment_cancel():
-    return HTMLResponse("Pagamento cancelado. Tente novamente.")
+    return HTMLResponse("Pagamento cancelado. Tente novamente ou escolha outro plano.")
 
 ###############
-# Onboarding
+# ONBOARDING
 ###############
 
 @app.get("/onboarding")
@@ -185,7 +184,6 @@ def onboarding_post(
 ):
     hashed_pw = bcrypt.hash(password)
 
-    # Insert no tenant
     from sqlalchemy import text
     sql = text("""
     INSERT INTO tenant (
@@ -222,7 +220,7 @@ def onboarding_post(
     return RedirectResponse("/dashboard", status_code=302)
 
 ###############
-# Login
+# LOGIN / LOGOUT
 ###############
 
 @app.get("/login")
@@ -257,35 +255,43 @@ def logout(request: Request):
     return RedirectResponse("/")
 
 ###############
-# Dashboard
+# DASHBOARD
 ###############
 
 @app.get("/dashboard")
 def dashboard(request: Request, db=Depends(get_db)):
+    """
+    Dashboard multi-nível:
+      - FREE: exibe teaser, sem gráficos
+      - PRO: exibe minigráfico e insight
+      - ENTERPRISE: exibe tudo do Pro + algo extra (ex: Nuvem de Palavras)
+    """
     tenant_id = request.session.get("tenant_id")
     if not tenant_id:
         return RedirectResponse("/login")
 
     from sqlalchemy import text
-    # Carrega tenant
+    # Carrega tenant (nome, plano)
     sql_tenant = text("SELECT id, nome, plano FROM tenant WHERE id = :tid")
-    tenant_row = db.execute(sql_tenant, {"tid": tenant_id}).fetchone()
-    if not tenant_row:
+    row_tenant = db.execute(sql_tenant, {"tid": tenant_id}).fetchone()
+    if not row_tenant:
         request.session.clear()
         return RedirectResponse("/login")
 
-    # Carrega feedback
+    tenant_name = row_tenant.nome
+    plan = row_tenant.plano
+
+    # Carrega feedbacks
     sql_fb = text("""
-    SELECT id, usuario_final, audio_url, transcript, sentimento, resumo
+    SELECT usuario_final, sentimento
     FROM feedback
     WHERE tenant_id = :tid
-    ORDER BY id DESC
     """)
-    feedbacks = db.execute(sql_fb, {"tid": tenant_id}).fetchall()
+    fb_rows = db.execute(sql_fb, {"tid": tenant_id}).fetchall()
 
-    total = len(feedbacks)
-    positives = sum(1 for f in feedbacks if f.sentimento == "positivo")
-    negatives = sum(1 for f in feedbacks if f.sentimento == "negativo")
+    total = len(fb_rows)
+    positives = sum(1 for r in fb_rows if r.sentimento == "positivo")
+    negatives = sum(1 for r in fb_rows if r.sentimento == "negativo")
 
     if total > 0:
         pos_percent = round((positives / total) * 100, 1)
@@ -294,40 +300,92 @@ def dashboard(request: Request, db=Depends(get_db)):
         pos_percent = 0
         neg_percent = 0
 
+    # Classes CSS para cor
+    pos_class = "positive" if pos_percent >= 50 else ""
+    neg_class = "negative" if neg_percent >= 50 else ""
+
+    # Monta listagem feedback
     feedback_html = ""
-    for f in feedbacks:
-        feedback_html += f"""
-        <div class="feedback-item">
-          <p><strong>De:</strong> {f.usuario_final or '-'} |
-             <strong>Sentimento:</strong> {f.sentimento or '(pendente)'}
+    for r in fb_rows:
+        feedback_html += f"<p>{r.usuario_final or '-'} => {r.sentimento or '(pendente)'}</p>"
+
+    # Monta link de feedback via WhatsApp
+    from urllib.parse import quote_plus
+    msg = f"Olá, obrigado por ser cliente da {tenant_name}! Envie seu áudio..."
+    link_whatsapp = f"https://wa.me/5599999999999?text={quote_plus(msg)}"
+
+    # SEÇÕES adicionais, dependendo do plano
+    free_section = ""
+    pro_section = ""
+    enterprise_section = ""
+
+    if plan == "free":
+        free_section = """
+          <p style="color:#666; font-style:italic;">
+            Você está no plano Free. Atualize para Pro ou Enterprise para ver estatísticas detalhadas 
+            e nuvem de palavras.
           </p>
-          <p>Transcrição: {f.transcript or '(aguardando)'} </p>
-          <hr/>
-        </div>
+        """
+    elif plan == "pro":
+        # Exemplo de um mini-gráfico (de barras) de sentimento + insights
+        bar_pos = int(pos_percent * 2)  # escala de 2 px
+        bar_neg = int(neg_percent * 2)
+        pro_section = f"""
+          <div style="border:1px solid #ddd; padding:1rem; margin:1rem 0; background:#f9f9f9;">
+            <h3>Insights de IA (Plano Pro)</h3>
+            <p>Abaixo um pequeno gráfico de sentimento:</p>
+            <div style="display:flex; gap:1rem; align-items:flex-end;">
+              <div style="width:30px; height:{bar_pos}px; background:green;"></div>
+              <div style="width:30px; height:{bar_neg}px; background:red;"></div>
+            </div>
+            <p>Verde = % Positivo, Vermelho = % Negativo</p>
+          </div>
+        """
+    elif plan == "enterprise":
+        bar_pos = int(pos_percent * 2)
+        bar_neg = int(neg_percent * 2)
+        pro_section = f"""
+          <div style="border:1px solid #ddd; padding:1rem; margin:1rem 0; background:#f9f9f9;">
+            <h3>Insights de IA (Plano Enterprise)</h3>
+            <p>Gráfico de barras do sentimento:</p>
+            <div style="display:flex; gap:1rem; align-items:flex-end;">
+              <div style="width:30px; height:{bar_pos}px; background:green;"></div>
+              <div style="width:30px; height:{bar_neg}px; background:red;"></div>
+            </div>
+            <p>Verde = % positivo, Vermelho = % negativo</p>
+          </div>
+        """
+        # Algo extra no enterprise, ex: wordcloud
+        enterprise_section = """
+          <div style="border:1px solid #ddd; padding:1rem; margin:1rem 0; background:#eef;">
+            <h3>Nuvem de Palavras Avançada</h3>
+            <img src="/static/wordcloud_example.png" alt="Nuvem de Palavras" style="max-width:300px;">
+            <p>Aqui exibimos a Nuvem de Palavras gerada pela IA, destacando termos-chave 
+               que aparecem nos feedbacks.</p>
+          </div>
         """
 
-    context = {
-        "USER_NAME": tenant_row.nome,
-        "PLAN": tenant_row.plano,
+    # Monta HTML base (ver dashboard.html)
+    html_str = render_page("dashboard.html", {
+        "USER_NAME": tenant_name,
+        "PLAN": plan,
         "TOTAL_FEEDBACKS": str(total),
         "POSITIVE_PERCENT": str(pos_percent),
         "NEGATIVE_PERCENT": str(neg_percent),
-        "FEEDBACK_LIST": feedback_html
-    }
-    html_str = render_page("dashboard.html", context)
+        "POS_CLASS": pos_class,
+        "NEG_CLASS": neg_class,
+        "FEEDBACK_LIST": feedback_html,
+        "WHATSAPP_LINK": link_whatsapp
+    })
 
-    # Adiciona link p/ WhatsApp
-    from urllib.parse import quote_plus
-    msg = f"Olá, obrigado por ser cliente da {tenant_row.nome}! Envie seu áudio."
-    link_whatsapp = f"https://wa.me/5599999999999?text={quote_plus(msg)}"
+    # Injeta seções
+    html_str = html_str.replace("{{FREE_SECTION}}", free_section)
+    html_str = html_str.replace("{{PRO_SECTION}}", pro_section)
+    html_str = html_str.replace("{{ENTERPRISE_SECTION}}", enterprise_section)
 
-    insert_str = f"""
-    <p>Link de Feedback (WhatsApp):
-       <input type="text" readonly value="{link_whatsapp}" style="width:100%; max-width:400px;">
-    </p>
-    """
-    # Manipular a string
-    html_str = html_str.replace("<h3>Feedbacks Recebidos</h3>", insert_str + "<h3>Feedbacks Recebidos</h3>")
+    # Classes CSS p/ cor no dashboard
+    # (Se seu dashboard.html usa algo como <span class="{{POS_CLASS}}">, 
+    #  as classes .positive {color:green} e .negative {color:red} podem estar no styles.css)
 
     return HTMLResponse(html_str)
 
@@ -346,7 +404,7 @@ def politica_privacidade():
     return HTMLResponse(html_str)
 
 ###############
-# Stripe Webhook
+# STRIPE WEBHOOK
 ###############
 
 @app.post("/stripe-webhook")
@@ -395,9 +453,7 @@ async def receive_whatsapp(request: Request, background_tasks: BackgroundTasks, 
                 media_id = msg["audio"]["id"]
                 sender = msg["from"] or "???"
 
-                # Necessário descobrir tenant_id de fato
-                # Exemplo fixo:
-                tenant_id = "MEU-UUID"  # Ajuste
+                tenant_id = "MEU-UUID"  # Ajuste a forma de encontrar tenant.
                 sql_insert = text("""
                 INSERT INTO feedback (tenant_id, usuario_final, audio_url, sentimento, resumo, criado_em)
                 VALUES (:tid, :usr_final, :audio_url, 'pendente', '', now())
@@ -426,7 +482,6 @@ def process_feedback(feedback_id: int):
         if not row:
             return
 
-        # Exemplo: analisando
         sql_up = text("""
         UPDATE feedback
         SET transcript='Exemplo de transcrição via IA',
