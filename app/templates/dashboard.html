@@ -2,67 +2,88 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Opina - Dashboard</title>
+
+  <!-- Fonte Work Sans + CSS -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link 
+    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="/static/styles.css">
+
+  <!-- Caso precise de estilos locais extras, pode colocar aqui -->
   <style>
-    /* Exemplo de cores para positivo e negativo */
-    .positive { color: green; font-weight: bold; }
-    .negative { color: red; font-weight: bold; }
-    .insight-box {
-      border: 1px solid #ddd;
-      padding: 1rem;
-      margin: 1rem 0;
-      border-radius: 8px;
-      background: #f9f9f9;
-    }
+    /* Caso queira destacar algo específico no dashboard local */
   </style>
 </head>
 <body>
-<header class="site-header">
-  <a class="logo" href="/">Opina</a>
-  <nav>
-    <a class="btn-link" href="/logout">Sair</a>
-  </nav>
-</header>
 
-<div class="center-container" style="align-items:flex-start;">
-  <div style="max-width: 800px; margin:0 auto; width:100%;">
-    <h1>Dashboard</h1>
-    <p>Bem-vindo(a), {{USER_NAME}} (plano: {{PLAN}})!</p>
+  <!-- Header com logo no canto superior direito -->
+  <header class="site-header" style="justify-content:flex-end;">
+    <a class="logo" href="/">Opina</a>
+  </header>
 
-    <!-- Barra de métricas -->
-    <div style="margin:1rem 0; display:flex; gap:1rem;">
-      <div style="border:1px solid #ccc; padding:0.5rem 1rem; border-radius:4px;">
-        <strong>Total Feedbacks:</strong>
-        <span>{{TOTAL_FEEDBACKS}}</span>
+  <!-- Conteúdo central -->
+  <div class="center-container" style="align-items:flex-start; padding-top:3rem;">
+    <div style="max-width:800px; width:100%; margin:0 auto;">
+      
+      <!-- Título da página -->
+      <h1 class="form-title" style="margin-bottom:1rem; text-align:center;">
+        Dashboard
+      </h1>
+      <p style="text-align:center; margin-bottom:2rem;">
+        Bem-vindo(a), <strong>{{USER_NAME}}</strong> (plano: <strong>{{PLAN}}</strong>)!
+      </p>
+
+      <!-- Barra de métricas (Total / %Pos / %Neg) -->
+      <div style="display:flex; flex-wrap:wrap; gap:1rem; justify-content:center; margin-bottom:2rem;">
+        <div style="border:1px solid #ddd; border-radius:8px; padding:0.75rem 1rem; min-width:150px; text-align:center;">
+          <strong>Total Feedbacks:</strong>
+          <div style="font-size:1.25rem;">{{TOTAL_FEEDBACKS}}</div>
+        </div>
+        <div style="border:1px solid #ddd; border-radius:8px; padding:0.75rem 1rem; min-width:150px; text-align:center;">
+          <strong>% Positivos:</strong>
+          <div class="{{POS_CLASS}}" style="font-size:1.25rem;">{{POSITIVE_PERCENT}}%</div>
+        </div>
+        <div style="border:1px solid #ddd; border-radius:8px; padding:0.75rem 1rem; min-width:150px; text-align:center;">
+          <strong>% Negativos:</strong>
+          <div class="{{NEG_CLASS}}" style="font-size:1.25rem;">{{NEGATIVE_PERCENT}}%</div>
+        </div>
       </div>
-      <div style="border:1px solid #ccc; padding:0.5rem 1rem; border-radius:4px;">
-        <strong>% Positivos:</strong>
-        <span class="{{POS_CLASS}}">{{POSITIVE_PERCENT}}%</span>
+
+      <!-- Seções diferenciadas por plano: placeholders -->
+      {{FREE_SECTION}}
+      {{PRO_SECTION}}
+      {{ENTERPRISE_SECTION}}
+
+      <!-- Link do WhatsApp -->
+      <div style="margin:2rem 0;">
+        <label style="font-weight:500;">Link de Feedback (WhatsApp):</label>
+        <input 
+          type="text" 
+          readonly 
+          value="{{WHATSAPP_LINK}}" 
+          style="
+            width:100%;
+            max-width:400px;
+            margin-top:0.5rem;
+            padding:0.5rem;
+            border:1px solid #ddd;
+            border-radius:8px;
+          "
+        >
       </div>
-      <div style="border:1px solid #ccc; padding:0.5rem 1rem; border-radius:4px;">
-        <strong>% Negativos:</strong>
-        <span class="{{NEG_CLASS}}">{{NEGATIVE_PERCENT}}%</span>
+
+      <!-- Listagem de feedbacks -->
+      <h2 style="margin-bottom:1rem;">Feedbacks Recebidos</h2>
+      <div>
+        {{FEEDBACK_LIST}}
       </div>
-    </div>
 
-    <!-- Seções diferenciadas por plano, usando placeholders -->
-    {{FREE_SECTION}}
-    {{PRO_SECTION}}
-    {{ENTERPRISE_SECTION}}
-
-    <!-- Link de Feedback (WhatsApp) -->
-    <p>
-      <strong>Link de Feedback (WhatsApp):</strong><br>
-      <input type="text" readonly value="{{WHATSAPP_LINK}}" style="width:100%; max-width:400px;">
-    </p>
-
-    <h3>Feedbacks Recebidos</h3>
-    <div>
-      {{FEEDBACK_LIST}}
-    </div>
-  </div>
-</div>
+    </div> <!-- fim do container principal -->
+  </div> <!-- center-container -->
 
 </body>
 </html>
